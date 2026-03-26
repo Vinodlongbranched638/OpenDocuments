@@ -1,4 +1,3 @@
-// packages/core/tests/events/bus.test.ts
 import { describe, it, expect, vi } from 'vitest'
 import { EventBus } from '../../src/events/bus.js'
 
@@ -18,12 +17,12 @@ describe('EventBus', () => {
     const handler = vi.fn()
 
     bus.onAny(handler)
-    bus.emit('document:indexed', { documentId: 'doc-1' })
-    bus.emit('query:received', { query: 'test' })
+    bus.emit('document:indexed', { documentId: 'doc-1', chunks: 5 })
+    bus.emit('query:received', { queryId: 'q-1', query: 'test' })
 
     expect(handler).toHaveBeenCalledTimes(2)
-    expect(handler).toHaveBeenCalledWith('document:indexed', { documentId: 'doc-1' })
-    expect(handler).toHaveBeenCalledWith('query:received', { query: 'test' })
+    expect(handler).toHaveBeenCalledWith('document:indexed', { documentId: 'doc-1', chunks: 5 })
+    expect(handler).toHaveBeenCalledWith('query:received', { queryId: 'q-1', query: 'test' })
   })
 
   it('removes listeners with off()', () => {
@@ -32,7 +31,7 @@ describe('EventBus', () => {
 
     bus.on('document:indexed', handler)
     bus.off('document:indexed', handler)
-    bus.emit('document:indexed', { documentId: 'doc-1' })
+    bus.emit('document:indexed', { documentId: 'doc-1', chunks: 5 })
 
     expect(handler).not.toHaveBeenCalled()
   })

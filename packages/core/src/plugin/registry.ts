@@ -7,14 +7,30 @@ import type {
   ModelPlugin,
   MiddlewarePlugin,
 } from './interfaces.js'
+import { checkCompatibility } from './capability.js'
 
 export class PluginRegistry {
   private plugins = new Map<string, AnyPlugin>()
+
+  constructor(private coreVersion: string = '0.1.0') {}
 
   async register(plugin: AnyPlugin, ctx: PluginContext): Promise<void> {
     if (this.plugins.has(plugin.name)) {
       throw new Error(`Plugin ${plugin.name} is already registered`)
     }
+
+    const compatibility = checkCompatibility(
+      plugin,
+      this.coreVersion,
+      Array.from(this.plugins.keys())
+    )
+
+    if (!compatibility.compatible) {
+      throw new Error(
+        `Plugin ${plugin.name} is not compatible: ${compatibility.errors.join(', ')}`
+      )
+    }
+
     await plugin.setup(ctx)
     this.plugins.set(plugin.name, plugin)
   }

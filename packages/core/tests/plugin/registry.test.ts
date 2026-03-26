@@ -76,6 +76,14 @@ describe('PluginRegistry', () => {
     expect(registry.findParserForType('.pdf')).toBeUndefined()
   })
 
+  it('rejects incompatible plugins', async () => {
+    const registry = new PluginRegistry('0.1.0')
+    const parser = createMockParser({ coreVersion: '^5.0.0' })
+    const ctx: PluginContext = { config: {}, dataDir: '/tmp', log: console as any }
+
+    await expect(registry.register(parser, ctx)).rejects.toThrow('not compatible')
+  })
+
   it('returns all registered plugin names', async () => {
     const registry = new PluginRegistry()
     const parser = createMockParser()
