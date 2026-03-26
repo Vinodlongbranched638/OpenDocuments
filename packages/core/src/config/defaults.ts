@@ -21,5 +21,5 @@ export const DEFAULT_CONFIG: OpenDocsConfig = {
   },
   ui: { locale: 'auto', theme: 'auto' },
   telemetry: { enabled: false },
-  storage: { db: 'sqlite', vectorDb: 'chroma', dataDir: '~/.opendocs' },
+  storage: { db: 'sqlite', vectorDb: 'lancedb', dataDir: '~/.opendocs' },
 }

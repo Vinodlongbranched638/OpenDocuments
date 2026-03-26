@@ -77,7 +77,7 @@ export const configSchema = z.object({
   storage: z.object({
     db: z.enum(['sqlite', 'postgres']).default('sqlite'),
     dbUrl: z.string().optional(),
-    vectorDb: z.enum(['chroma', 'qdrant']).default('chroma'),
+    vectorDb: z.enum(['lancedb', 'qdrant']).default('lancedb'),
     vectorDbUrl: z.string().optional(),
     dataDir: z.string().default('~/.opendocs'),
   }).default({}),
