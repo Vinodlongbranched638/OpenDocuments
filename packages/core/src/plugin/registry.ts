@@ -32,6 +32,8 @@ export class PluginRegistry {
     }
 
     await plugin.setup(ctx)
+    // Note: Map.set is infallible. If post-setup validation is added in the future,
+    // wrap in try/catch and call plugin.teardown() on failure.
     this.plugins.set(plugin.name, plugin)
   }
 

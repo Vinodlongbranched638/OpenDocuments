@@ -1,23 +1,8 @@
 import { Command } from 'commander'
-import { log } from '@opendocs/core'
+import { log, discoverFiles } from '@opendocs/core'
 import { getContext, shutdownContext } from '../utils/bootstrap.js'
-import { readFileSync, statSync, readdirSync } from 'node:fs'
-import { extname, join, basename, resolve } from 'node:path'
-
-function collectFiles(dir: string, supported: string[]): string[] {
-  const results: string[] = []
-  const entries = readdirSync(dir, { withFileTypes: true })
-  for (const entry of entries) {
-    const fullPath = join(dir, entry.name)
-    if (entry.isDirectory()) {
-      if (entry.name.startsWith('.') || entry.name === 'node_modules') continue
-      results.push(...collectFiles(fullPath, supported))
-    } else if (supported.includes(extname(entry.name))) {
-      results.push(fullPath)
-    }
-  }
-  return results
-}
+import { readFileSync } from 'node:fs'
+import { extname, basename, resolve } from 'node:path'
 
 export function indexCommand() {
   return new Command('index')
@@ -29,8 +14,7 @@ export function indexCommand() {
       const absPath = resolve(inputPath)
       try {
         log.heading('Indexing')
-        const stat = statSync(absPath)
-        const files = stat.isFile() ? [absPath] : collectFiles(absPath, ['.md', '.mdx', '.txt'])
+        const files = discoverFiles(absPath)
         if (files.length === 0) { log.fail('No supported files found'); return }
         log.info(`Found ${files.length} file(s)`)
         for (const file of files) {

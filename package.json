@@ -3,6 +3,7 @@
   "private": true,
   "workspaces": ["packages/*", "plugins/*"],
   "scripts": {
+    "setup": "npm install && npm run build && echo 'Setup complete. Run: npm run test'",
     "build": "turbo build",
     "test": "turbo test",
     "lint": "turbo lint",

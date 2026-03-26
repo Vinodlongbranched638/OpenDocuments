@@ -73,7 +73,9 @@ export function chunkText(
         overlapTokens += pTokens
       }
 
-      // Update heading stack by scanning all flushed paragraphs
+      // Update heading stack by scanning all flushed paragraphs.
+      // Note: Overlap paragraphs may be re-processed for heading tracking.
+      // This is safe because heading updates are idempotent (same heading = no change).
       for (const flushed of currentParagraphs) {
         currentHeadings = updateHeadingStack(currentHeadings, flushed)
       }

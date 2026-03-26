@@ -8,17 +8,18 @@ export interface RetrieveOptions {
 }
 
 export class Retriever {
+  private embedFn: (texts: string[]) => Promise<import('../plugin/interfaces.js').EmbeddingResult>
+
   constructor(
     private store: DocumentStore,
-    private embedder: ModelPlugin
+    embedder: ModelPlugin
   ) {
-    if (!embedder.embed) {
-      throw new Error('Embedding model must support embed()')
-    }
+    if (!embedder.embed) throw new Error('Embedding model must support embed()')
+    this.embedFn = embedder.embed.bind(embedder)
   }
 
   async retrieve(query: string, opts: RetrieveOptions): Promise<SearchResult[]> {
-    const embedResult = await this.embedder.embed!([query])
+    const embedResult = await this.embedFn([query])
     const queryEmbedding = embedResult.dense[0]
     const results = await this.store.searchChunks(queryEmbedding, opts.k, opts.minScore)
     return results.slice(0, opts.finalTopK)

@@ -4,6 +4,7 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js'
+import { discoverFiles } from '@opendocs/core'
 import type { AppContext } from '../bootstrap.js'
 
 const TOOLS = [
@@ -163,43 +164,16 @@ export function createMCPServer(ctx: AppContext): Server {
               isError: true,
             }
           }
-          const { statSync, readdirSync } = await import('node:fs')
           const { readFile } = await import('node:fs/promises')
-          const { join, extname } = await import('node:path')
+          const { extname } = await import('node:path')
 
-          let stat: ReturnType<typeof statSync>
+          let filesToIndex: string[]
           try {
-            stat = statSync(filePath)
+            filesToIndex = discoverFiles(filePath)
           } catch {
             return {
               content: [{ type: 'text' as const, text: `Error: path not found: ${filePath}` }],
               isError: true,
-            }
-          }
-
-          const SUPPORTED_EXTENSIONS = new Set(['.md', '.mdx', '.txt'])
-          const EXCLUDED_DIRS = new Set(['.git', 'node_modules'])
-
-          const filesToIndex: string[] = []
-          if (stat.isDirectory()) {
-            const entries = readdirSync(filePath, { recursive: true }) as string[]
-            for (const entry of entries) {
-              // Exclude hidden directories and known excluded dirs
-              const parts = entry.split(/[\\/]/)
-              if (parts.some((p) => p.startsWith('.') || EXCLUDED_DIRS.has(p))) continue
-              const fullPath = join(filePath, entry)
-              try {
-                const entryStat = statSync(fullPath)
-                if (entryStat.isFile() && SUPPORTED_EXTENSIONS.has(extname(fullPath))) {
-                  filesToIndex.push(fullPath)
-                }
-              } catch {
-                // skip
-              }
-            }
-          } else {
-            if (SUPPORTED_EXTENSIONS.has(extname(filePath))) {
-              filesToIndex.push(filePath)
             }
           }
 
