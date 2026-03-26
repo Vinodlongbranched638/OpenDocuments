@@ -71,10 +71,15 @@ export class APIKeyManager {
     }
   }
 
+  /**
+   * Validate an API key. Uses hash-then-lookup pattern which eliminates
+   * timing oracle attacks (attacker cannot incrementally guess the hash).
+   * The SHA-256 pre-hash means database lookup time does not leak key material.
+   */
   validate(rawKey: string): ValidatedKey | null {
     const keyHash = hashKey(rawKey)
     const row = this.db.get<any>(
-      'SELECT * FROM api_keys WHERE key_hash = ?',
+      'SELECT * FROM api_keys WHERE key_hash = ? AND revoked_at IS NULL',
       [keyHash]
     )
 
@@ -113,8 +118,8 @@ export class APIKeyManager {
 
   list(workspaceId?: string): Omit<APIKeyRecord, 'keyHash'>[] {
     const query = workspaceId
-      ? 'SELECT * FROM api_keys WHERE workspace_id = ? ORDER BY created_at DESC'
-      : 'SELECT * FROM api_keys ORDER BY created_at DESC'
+      ? 'SELECT * FROM api_keys WHERE workspace_id = ? AND revoked_at IS NULL ORDER BY created_at DESC'
+      : 'SELECT * FROM api_keys WHERE revoked_at IS NULL ORDER BY created_at DESC'
     const params = workspaceId ? [workspaceId] : []
 
     return this.db.all<any>(query, params).map(row => ({
@@ -133,6 +138,6 @@ export class APIKeyManager {
   }
 
   revoke(id: string): void {
-    this.db.run('DELETE FROM api_keys WHERE id = ?', [id])
+    this.db.run('UPDATE api_keys SET revoked_at = ? WHERE id = ?', [new Date().toISOString(), id])
   }
 }

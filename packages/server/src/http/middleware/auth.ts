@@ -2,10 +2,18 @@ import type { Context, Next } from 'hono'
 import type { AppContext } from '../../bootstrap.js'
 import type { APIKeyScope, ValidatedKey } from '@opendocs/core'
 
+export interface PersonalModeAuth {
+  mode: 'personal'
+  record: null
+  hasScope: () => boolean
+}
+
+const PERSONAL_MODE_AUTH: PersonalModeAuth = { mode: 'personal' as const, record: null, hasScope: () => true }
+
 // Extend Hono context with auth info
 declare module 'hono' {
   interface ContextVariableMap {
-    auth: ValidatedKey | null
+    auth: ValidatedKey | PersonalModeAuth | null
   }
 }
 
@@ -17,7 +25,7 @@ export function authMiddleware(appCtx: AppContext) {
   return async (c: Context, next: Next) => {
     // Personal mode: no auth required
     if (appCtx.config.mode === 'personal') {
-      c.set('auth', null)
+      c.set('auth', PERSONAL_MODE_AUTH)
       return next()
     }
 
@@ -51,7 +59,8 @@ export function requireScope(scope: APIKeyScope) {
   return async (c: Context, next: Next) => {
     const auth = c.get('auth')
     // Personal mode: allow all
-    if (!auth) return next()
+    if (auth && 'mode' in auth && auth.mode === 'personal') return next()
+    if (!auth || !auth.record) return c.json({ error: 'Authentication required' }, 401)
 
     if (!auth.hasScope(scope)) {
       return c.json({ error: `Insufficient permissions. Required scope: ${scope}` }, 403)
@@ -66,7 +75,8 @@ export function requireScope(scope: APIKeyScope) {
 export function requireRole(...roles: string[]) {
   return async (c: Context, next: Next) => {
     const auth = c.get('auth')
-    if (!auth) return next()
+    if (auth && 'mode' in auth && auth.mode === 'personal') return next()
+    if (!auth || !auth.record) return c.json({ error: 'Authentication required' }, 401)
 
     if (!roles.includes(auth.record.role)) {
       return c.json({ error: `Insufficient role. Required: ${roles.join(' or ')}` }, 403)

@@ -1,17 +1,26 @@
 import type { Context, Next } from 'hono'
+import { createHash } from 'node:crypto'
 
 interface RateLimitEntry {
   count: number
   resetAt: number
 }
 
-const store = new Map<string, RateLimitEntry>()
-
 export function rateLimit(opts: { max: number; windowMs: number }) {
+  const store = new Map<string, RateLimitEntry>()
+
   return async (c: Context, next: Next) => {
-    // Use API key or IP as identifier
-    const key = c.req.header('x-api-key') || c.req.header('x-forwarded-for') || 'anonymous'
+    // Use API key or first IP from x-forwarded-for as identifier
+    const rawKey = c.req.header('x-api-key') || c.req.header('x-forwarded-for')?.split(',')[0]?.trim() || 'anonymous'
+    const key = createHash('sha256').update(rawKey).digest('hex').substring(0, 16) // short hash for memory efficiency
     const now = Date.now()
+
+    // Lazy cleanup: remove expired entries when store grows large
+    if (store.size > 100) {
+      for (const [k, v] of store) {
+        if (now > v.resetAt) store.delete(k)
+      }
+    }
 
     let entry = store.get(key)
     if (!entry || now > entry.resetAt) {

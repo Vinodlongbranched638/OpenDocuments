@@ -53,17 +53,17 @@ export function authCommand() {
       }
     })
 
-  cmd.command('revoke-key <name>')
-    .description('Revoke an API key')
-    .action(async (name) => {
+  cmd.command('revoke-key <nameOrId>')
+    .description('Revoke an API key by name or ID')
+    .action(async (nameOrId) => {
       const ctx = await getContext()
       try {
         const keys = ctx.apiKeyManager.list()
-        const key = keys.find(k => k.name === name)
-        if (!key) { log.fail(`Key "${name}" not found`); return }
+        const key = keys.find(k => k.name === nameOrId || k.id === nameOrId)
+        if (!key) { log.fail(`Key "${nameOrId}" not found`); return }
 
         ctx.apiKeyManager.revoke(key.id)
-        log.ok(`Key "${name}" revoked`)
+        log.ok(`Key "${nameOrId}" revoked`)
       } finally {
         await shutdownContext()
       }

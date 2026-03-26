@@ -49,6 +49,8 @@ export class AuditLogger {
     limit?: number
     offset?: number
   }): AuditEntry[] {
+    if (!this.enabled) return []
+
     let sql = 'SELECT * FROM audit_logs WHERE 1=1'
     const params: unknown[] = []
 

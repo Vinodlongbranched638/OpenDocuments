@@ -55,6 +55,17 @@ describe('PIIRedactor', () => {
       .toBe('Email: [PII] Phone: [PII]')
   })
 
+  it('supports hash method', () => {
+    const redactor = new PIIRedactor({
+      enabled: true, patterns: ['email'], method: 'hash', replacement: '',
+    })
+    const result = redactor.redact('Contact john@example.com for info')
+    // Should not contain the original email
+    expect(result).not.toContain('john@example.com')
+    // Should contain an 8-char hex hash
+    expect(result).toMatch(/Contact [a-f0-9]{8} for info/)
+  })
+
   it('redacts IP addresses', () => {
     const redactor = new PIIRedactor({
       enabled: true, patterns: ['ip-address'], method: 'replace', replacement: '[IP]',
