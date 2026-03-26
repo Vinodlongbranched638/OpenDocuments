@@ -26,7 +26,7 @@ export function documentRoutes(ctx: AppContext) {
       return c.json({ error: 'No file provided' }, 400)
     }
     // Read as buffer for binary files, text for known text formats
-    const textExtensions = ['.md', '.mdx', '.txt', '.json', '.yaml', '.yml', '.toml', '.csv']
+    const textExtensions = ['.md', '.mdx', '.txt', '.json', '.yaml', '.yml', '.toml', '.csv', '.html', '.htm']
     const ext = '.' + (file.name.split('.').pop() || '')
     const content = textExtensions.includes(ext)
       ? await file.text()

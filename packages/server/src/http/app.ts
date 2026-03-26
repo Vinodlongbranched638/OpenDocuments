@@ -6,6 +6,7 @@ import { existsSync, readFileSync, statSync } from 'node:fs'
 import { healthRoutes } from './routes/health.js'
 import { documentRoutes } from './routes/documents.js'
 import { chatRoutes } from './routes/chat.js'
+import { conversationRoutes } from './routes/conversations.js'
 import type { AppContext } from '../bootstrap.js'
 
 export interface AppOptions {
@@ -41,6 +42,7 @@ export function createApp(ctx: AppContext, opts?: AppOptions) {
   app.route('/', healthRoutes(ctx))
   app.route('/', documentRoutes(ctx))
   app.route('/', chatRoutes(ctx))
+  app.route('/', conversationRoutes(ctx))
 
   app.onError((err, c) => {
     console.error('Unhandled error:', err.message)

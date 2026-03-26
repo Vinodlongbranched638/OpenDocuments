@@ -109,6 +109,8 @@ export class GoogleModelPlugin implements ModelPlugin {
   }
 
   async embed(texts: string[]): Promise<EmbeddingResult> {
+    // TODO(Phase 2): Use batchEmbedContents endpoint for larger batches (>10 texts)
+    // to reduce HTTP overhead: POST /v1beta/models/{model}:batchEmbedContents
     const results = await Promise.all(
       texts.map(async (text) => {
         const url = `${this.baseUrl}/models/${this.embeddingModel}:embedContent?key=${this.apiKey}`

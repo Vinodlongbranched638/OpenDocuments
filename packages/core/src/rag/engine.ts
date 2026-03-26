@@ -98,6 +98,9 @@ export class RAGEngine {
     const confidence = this.computeConfidence(input.query, sources)
     yield { type: 'confidence', data: confidence }
 
+    // TODO(Phase 2): Web search integration when config.features.webSearch is true/fallback
+    // TODO(Phase 2): Hallucination guard when config.features.hallucinationGuard is true/strict
+
     // Generate (streaming)
     const genInput: GenerateInput = {
       query: input.query,
@@ -146,6 +149,9 @@ export class RAGEngine {
     // Calculate confidence
     const confidence = this.computeConfidence(query, sources)
 
+    // TODO(Phase 2): Web search integration when config.features.webSearch is true/fallback
+    // TODO(Phase 2): Hallucination guard when config.features.hallucinationGuard is true/strict
+
     // Generate
     const genInput: GenerateInput = {
       query,
@@ -177,25 +183,44 @@ export class RAGEngine {
     query: string,
     config: RAGProfileConfig,
   ): Promise<SearchResult[]> {
-    let sources = await this.retriever.retrieve(query, {
+    const retrieveOpts = {
       k: config.retrieval.k,
       finalTopK: config.retrieval.finalTopK,
       minScore: config.retrieval.minScore,
-    })
+    }
+
+    let results = await this.retriever.retrieve(query, retrieveOpts)
 
     // Fallback: if minScore filtered everything, retry without threshold.
     // This trades result quality for availability — the confidence score will be lower
     // because retrieval scores on fallback results are below the configured threshold.
-    if (sources.length === 0 && config.retrieval.minScore > 0) {
-      sources = await this.retriever.retrieve(query, {
+    if (results.length === 0 && config.retrieval.minScore > 0) {
+      results = await this.retriever.retrieve(query, {
         k: config.retrieval.k,
         finalTopK: config.retrieval.finalTopK,
       })
     }
 
-    this.eventBus.emit('query:retrieved', { queryId, chunks: sources.length })
+    // Check if results are insufficient and adaptive retrieval is enabled
+    if (config.features.adaptiveRetrieval && results.length < 3) {
+      // Retry with relaxed parameters
+      const relaxedResults = await this.retriever.retrieve(query, {
+        k: retrieveOpts.k * 2,
+        finalTopK: retrieveOpts.finalTopK,
+        minScore: 0,  // remove minScore filter
+      })
+      if (relaxedResults.length > results.length) {
+        results = relaxedResults
+      }
+    }
 
-    return sources
+    // TODO(Phase 2): Reranker integration when config.features.reranker is true
+    // TODO(Phase 2): Query decomposition when config.features.queryDecomposition is true
+    // TODO(Phase 2): Cross-lingual retrieval when config.features.crossLingual is true
+
+    this.eventBus.emit('query:retrieved', { queryId, chunks: results.length })
+
+    return results
   }
 
   private computeConfidence(query: string, sources: SearchResult[]): ConfidenceResult {

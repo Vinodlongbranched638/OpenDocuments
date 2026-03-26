@@ -16,6 +16,7 @@ import {
   RAGEngine,
   MarkdownParser,
   PlainTextParser,
+  ConversationManager,
   type DB,
   type VectorDB,
   type ModelPlugin,
@@ -243,6 +244,7 @@ export interface AppContext {
   eventBus: EventBus
   middleware: MiddlewareRunner
   workspaceManager: WorkspaceManager
+  conversationManager: ConversationManager
   store: DocumentStore
   pipeline: IngestPipeline
   ragEngine: RAGEngine
@@ -370,6 +372,9 @@ export async function bootstrap(opts: BootstrapOptions = {}): Promise<AppContext
       customProfileConfig: config.rag.custom,
     })
 
+    // 12. Create ConversationManager
+    const conversationManager = new ConversationManager(db, defaultWorkspace.id)
+
     // Shutdown function
     const shutdown = async (): Promise<void> => {
       await registry.teardownAll()
@@ -386,6 +391,7 @@ export async function bootstrap(opts: BootstrapOptions = {}): Promise<AppContext
       eventBus,
       middleware,
       workspaceManager,
+      conversationManager,
       store,
       pipeline,
       ragEngine,

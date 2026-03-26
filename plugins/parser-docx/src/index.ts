@@ -16,26 +16,45 @@ export class DOCXParser implements ParserPlugin {
       ? Buffer.from(raw.content, 'utf-8')
       : Buffer.from(raw.content)
 
-    const result = await mammoth.extractRawText({ buffer })
-    const text = result.value?.trim()
+    // Use HTML conversion to preserve heading structure
+    const htmlResult = await mammoth.convertToHtml({ buffer })
+    const html = htmlResult.value
 
-    if (!text) return
+    if (!html?.trim()) return
 
-    // Split into paragraphs
-    const paragraphs = text.split(/\n{2,}/).filter((p: string) => p.trim())
+    // Parse HTML with simple regex (no cheerio dependency in this plugin)
     const headings: string[] = []
 
-    for (const para of paragraphs) {
-      // Detect heading-like text (short lines, all caps or numbered)
-      const trimmed = para.trim()
-      if (trimmed.length < 100 && (trimmed === trimmed.toUpperCase() || /^\d+[\.\)]\s/.test(trimmed))) {
-        headings.push(trimmed)
+    // Split by block-level elements
+    const blocks = html.split(/<\/(?:p|h[1-6]|pre|ul|ol|table)>/i).filter(b => b.trim())
+
+    for (const block of blocks) {
+      // Check for heading tags
+      const headingMatch = block.match(/<h([1-6])[^>]*>([\s\S]*?)$/i)
+      if (headingMatch) {
+        const level = parseInt(headingMatch[1])
+        const text = headingMatch[2].replace(/<[^>]+>/g, '').trim()
+        if (text) {
+          while (headings.length >= level) headings.pop()
+          headings.push(text)
+        }
+        continue
       }
 
-      yield {
-        content: trimmed,
-        chunkType: 'semantic',
-        headingHierarchy: [...headings],
+      // Check for code blocks
+      const codeMatch = block.match(/<pre[^>]*>([\s\S]*?)$/i)
+      if (codeMatch) {
+        const code = codeMatch[1].replace(/<[^>]+>/g, '').trim()
+        if (code) {
+          yield { content: code, chunkType: 'code-ast', headingHierarchy: [...headings] }
+        }
+        continue
+      }
+
+      // Regular paragraph
+      const text = block.replace(/<[^>]+>/g, '').trim()
+      if (text) {
+        yield { content: text, chunkType: 'semantic', headingHierarchy: [...headings] }
       }
     }
   }

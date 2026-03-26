@@ -42,6 +42,8 @@ export { generateAnswer, buildPrompt, type GenerateInput } from './rag/generator
 export { routeQuery, type QueryRoute } from './rag/router.js'
 export { RAGEngine, type QueryInput, type QueryResult, type RAGEngineOptions } from './rag/engine.js'
 
+export { ConversationManager, type Conversation, type Message } from './conversation/manager.js'
+
 export type {
   PluginType,
   PipelineStage,
