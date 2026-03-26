@@ -67,17 +67,51 @@ describe('DocumentStore', () => {
     expect(results[0].content).toBe('Hello')
   })
 
-  it('deletes document and its chunks', async () => {
+  it('soft deletes document and removes vectors', async () => {
     const doc = store.createDocument({
       title: 'test.md', sourceType: 'local', sourcePath: '/docs/test.md', fileType: '.md',
     })
     await store.storeChunks(doc.id, [
       { content: 'Hello', embedding: [1, 0, 0], chunkType: 'semantic', position: 0, tokenCount: 1, headingHierarchy: [] },
     ])
-    await store.deleteDocument(doc.id)
+    await store.softDeleteDocument(doc.id)
+    // Soft-deleted docs are filtered out by getDocument
+    expect(store.getDocument(doc.id)).toBeUndefined()
+    // Vectors are removed
+    const results = await store.searchChunks([1, 0, 0], 10)
+    expect(results).toHaveLength(0)
+    // But document appears in deleted list
+    const deleted = store.listDeletedDocuments()
+    expect(deleted).toHaveLength(1)
+    expect(deleted[0].id).toBe(doc.id)
+  })
+
+  it('restores a soft-deleted document', async () => {
+    const doc = store.createDocument({
+      title: 'test.md', sourceType: 'local', sourcePath: '/docs/test.md', fileType: '.md',
+    })
+    await store.softDeleteDocument(doc.id)
+    expect(store.getDocument(doc.id)).toBeUndefined()
+    store.restoreDocument(doc.id)
+    const restored = store.getDocument(doc.id)
+    expect(restored).toBeDefined()
+    expect(restored?.status).toBe('pending')
+  })
+
+  it('hard deletes document and its chunks permanently', async () => {
+    const doc = store.createDocument({
+      title: 'test.md', sourceType: 'local', sourcePath: '/docs/test.md', fileType: '.md',
+    })
+    await store.storeChunks(doc.id, [
+      { content: 'Hello', embedding: [1, 0, 0], chunkType: 'semantic', position: 0, tokenCount: 1, headingHierarchy: [] },
+    ])
+    await store.hardDeleteDocument(doc.id)
     expect(store.getDocument(doc.id)).toBeUndefined()
     const results = await store.searchChunks([1, 0, 0], 10)
     expect(results).toHaveLength(0)
+    // Not in deleted list either (hard delete)
+    const deleted = store.listDeletedDocuments()
+    expect(deleted).toHaveLength(0)
   })
 
   it('checks content hash for change detection', () => {

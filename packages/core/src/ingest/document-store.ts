@@ -154,16 +154,44 @@ export class DocumentStore {
     })
   }
 
-  async deleteDocument(documentId: string): Promise<void> {
+  async softDeleteDocument(documentId: string): Promise<void> {
+    // Soft delete: set deleted_at timestamp
+    const now = new Date().toISOString()
+    this.db.run(
+      'UPDATE documents SET deleted_at = ?, updated_at = ? WHERE id = ?',
+      [now, now, documentId]
+    )
+    // Also remove vectors (they can't be soft-deleted in LanceDB)
+    const safeId = documentId.replace(/'/g, "''")
+    await this.vectorDb.deleteByFilter(COLLECTION, `document_id = '${safeId}'`)
+  }
+
+  async hardDeleteDocument(documentId: string): Promise<void> {
     // Step 1: Delete vectors. If this throws, SQLite delete is never reached -- both stores remain consistent.
     const safeId = documentId.replace(/'/g, "''")
     await this.vectorDb.deleteByFilter(COLLECTION, `document_id = '${safeId}'`)
 
-    // Step 2: Delete SQLite row.
-    // If vector deletion succeeded but this fails, the document row remains with no backing vectors.
-    // That is acceptable: a subsequent retry of deleteDocument will succeed because
-    // deleteByFilter on an already-absent document is a no-op, and the SQLite delete will be retried.
+    // Step 2: Delete SQLite row permanently.
     this.db.run('DELETE FROM documents WHERE id = ?', [documentId])
+  }
+
+  /** @deprecated Use softDeleteDocument instead */
+  async deleteDocument(documentId: string): Promise<void> {
+    return this.hardDeleteDocument(documentId)
+  }
+
+  restoreDocument(documentId: string): void {
+    this.db.run(
+      'UPDATE documents SET deleted_at = NULL, status = ?, updated_at = ? WHERE id = ?',
+      ['pending', new Date().toISOString(), documentId]
+    )
+  }
+
+  listDeletedDocuments(): DocumentRow[] {
+    return this.db.all<DocumentRow>(
+      'SELECT * FROM documents WHERE workspace_id = ? AND deleted_at IS NOT NULL ORDER BY deleted_at DESC',
+      [this.workspaceId]
+    )
   }
 
   updateContentHash(documentId: string, hash: string): void {

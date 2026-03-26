@@ -354,6 +354,7 @@ export async function bootstrap(opts: BootstrapOptions = {}): Promise<AppContext
       eventBus,
       middleware,
       embeddingDimensions,
+      config,
     })
 
     // Capture for shutdown closure

@@ -180,8 +180,9 @@ export function createMCPServer(ctx: AppContext): Server {
           const results: { path: string; status: string; error?: string }[] = []
           for (const fp of filesToIndex) {
             try {
-              const content = await readFile(fp, 'utf-8')
+              const textExtensions = new Set(['.md', '.mdx', '.txt', '.json', '.yaml', '.yml', '.toml', '.csv', '.html', '.htm', '.ipynb'])
               const ext = extname(fp) || '.txt'
+              const content = textExtensions.has(ext) ? await readFile(fp, 'utf-8') : await readFile(fp)
               await ctx.pipeline.ingest({
                 title: fp,
                 content,

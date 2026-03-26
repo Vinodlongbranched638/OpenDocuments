@@ -15,7 +15,7 @@ export function documentRoutes(ctx: AppContext) {
   app.delete('/api/v1/documents/:id', async (c) => {
     const doc = ctx.store.getDocument(c.req.param('id'))
     if (!doc) return c.json({ error: 'Document not found' }, 404)
-    await ctx.store.deleteDocument(c.req.param('id'))
+    await ctx.store.softDeleteDocument(c.req.param('id'))
     return c.json({ deleted: true })
   })
 

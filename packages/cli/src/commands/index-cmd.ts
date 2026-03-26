@@ -23,10 +23,12 @@ export function indexCommand() {
             const docs = ctx.store.listDocuments()
             const existing = docs.find(d => d.source_path === file)
             if (existing) {
-              await ctx.store.deleteDocument(existing.id)
+              await ctx.store.hardDeleteDocument(existing.id)
             }
           }
-          const content = readFileSync(file, 'utf-8')
+          const textExtensions = new Set(['.md', '.mdx', '.txt', '.json', '.yaml', '.yml', '.toml', '.csv', '.html', '.htm', '.ipynb'])
+          const ext = extname(file)
+          const content = textExtensions.has(ext) ? readFileSync(file, 'utf-8') : readFileSync(file)
           const result = await ctx.pipeline.ingest({
             title: basename(file), content, sourceType: 'local',
             sourcePath: file, fileType: extname(file),

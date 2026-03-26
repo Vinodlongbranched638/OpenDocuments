@@ -6,7 +6,8 @@ import type { MiddlewareRunner } from './middleware.js'
 import { chunkText } from './chunker.js'
 import { sha256 } from '../utils/hash.js'
 import type { StoredChunk } from './document-store.js'
-import type { ParsedChunk, RawDocument } from '../plugin/interfaces.js'
+import type { ParsedChunk, RawDocument, ParserPlugin } from '../plugin/interfaces.js'
+import type { OpenDocsConfig } from '../config/schema.js'
 
 export interface IngestInput {
   title: string
@@ -28,12 +29,53 @@ export interface IngestPipelineOptions {
   eventBus: EventBus
   middleware: MiddlewareRunner
   embeddingDimensions: number
+  config?: OpenDocsConfig
 }
 
 const BATCH_SIZE = 32
 
 export class IngestPipeline {
   constructor(private opts: IngestPipelineOptions) {}
+
+  private async parseWithFallback(
+    raw: RawDocument,
+    fileExt: string,
+    config?: OpenDocsConfig
+  ): Promise<ParsedChunk[]> {
+    const { registry } = this.opts
+
+    // Try primary parser first
+    const primaryParser = registry.findParserForType(fileExt)
+    if (primaryParser) {
+      try {
+        const chunks: ParsedChunk[] = []
+        for await (const chunk of primaryParser.parse(raw)) {
+          chunks.push(chunk)
+        }
+        if (chunks.length > 0) return chunks
+      } catch {
+        // Primary parser failed, try fallbacks
+      }
+    }
+
+    // Try fallback chain
+    const fallbacks = config?.parserFallbacks?.[fileExt] || []
+    for (const fallbackName of fallbacks) {
+      const fallbackParser = registry.get(fallbackName)
+      if (!fallbackParser || fallbackParser.type !== 'parser') continue
+      try {
+        const chunks: ParsedChunk[] = []
+        for await (const chunk of (fallbackParser as ParserPlugin).parse(raw)) {
+          chunks.push(chunk)
+        }
+        if (chunks.length > 0) return chunks
+      } catch {
+        continue
+      }
+    }
+
+    throw new Error(`No parser found for ${fileExt}`)
+  }
 
   async ingest(input: IngestInput): Promise<IngestResult> {
     const { store, registry, eventBus, middleware } = this.opts
@@ -46,7 +88,7 @@ export class IngestPipeline {
         return { documentId: existing.id, chunks: existing.chunk_count ?? 0, status: 'skipped' }
       }
       // Content changed -- delete old document first
-      await store.deleteDocument(existing.id)
+      await store.hardDeleteDocument(existing.id)
     }
 
     // Create new document record
@@ -59,13 +101,6 @@ export class IngestPipeline {
     })
 
     try {
-      // Find parser by file extension
-      const parser = registry.findParserForType(fileType)
-      if (!parser) {
-        store.updateStatus(documentId, 'error', `No parser found for file type: ${fileType}`)
-        return { documentId, chunks: 0, status: 'error' }
-      }
-
       // Build RawDocument for parser
       const rawDoc: RawDocument = {
         sourceId: documentId,
@@ -78,11 +113,8 @@ export class IngestPipeline {
       // Apply before:parse middleware
       await middleware.run('before:parse', rawDoc)
 
-      // Parse document
-      const parsedChunks: ParsedChunk[] = []
-      for await (const chunk of parser.parse(rawDoc)) {
-        parsedChunks.push(chunk)
-      }
+      // Parse document with fallback chain
+      const parsedChunks = await this.parseWithFallback(rawDoc, fileType, this.opts.config)
 
       // Apply after:parse middleware
       await middleware.run('after:parse', parsedChunks)
