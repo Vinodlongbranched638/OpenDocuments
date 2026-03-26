@@ -34,6 +34,7 @@ export { MarkdownParser } from './parsers/markdown.js'
 
 export { getProfileConfig, type RAGProfileConfig } from './rag/profiles.js'
 export { calculateConfidence, type ConfidenceInput, type ConfidenceResult } from './rag/confidence.js'
+export { Retriever, type RetrieveOptions } from './rag/retriever.js'
 
 export type {
   PluginType,

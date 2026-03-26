@@ -1,0 +1,75 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { Retriever } from '../../src/rag/retriever.js'
+import { DocumentStore } from '../../src/ingest/document-store.js'
+import { createSQLiteDB } from '../../src/storage/sqlite.js'
+import { createLanceDB } from '../../src/storage/lancedb.js'
+import { runMigrations } from '../../src/storage/migrations/runner.js'
+import type { DB } from '../../src/storage/db.js'
+import type { VectorDB } from '../../src/storage/vector-db.js'
+import type { ModelPlugin } from '../../src/plugin/interfaces.js'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { join } from 'node:path'
+import { tmpdir } from 'node:os'
+
+function createMockEmbedder(): ModelPlugin {
+  return {
+    name: 'mock-embedder', type: 'model', version: '0.1.0', coreVersion: '^0.1.0',
+    capabilities: { embedding: true },
+    setup: async () => {},
+    async embed(texts: string[]) {
+      return {
+        dense: texts.map(t => {
+          const h = t.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
+          return [Math.sin(h), Math.cos(h), Math.sin(h * 2)]
+        }),
+      }
+    },
+  }
+}
+
+describe('Retriever', () => {
+  let db: DB
+  let vectorDb: VectorDB
+  let store: DocumentStore
+  let retriever: Retriever
+  let tempDir: string
+
+  beforeEach(async () => {
+    db = createSQLiteDB(':memory:')
+    runMigrations(db)
+    tempDir = mkdtempSync(join(tmpdir(), 'opendocs-test-'))
+    vectorDb = await createLanceDB(tempDir)
+    store = new DocumentStore(db, vectorDb, 'ws-1')
+    await store.initialize(3)
+
+    const embedder = createMockEmbedder()
+    retriever = new Retriever(store, embedder)
+
+    const doc = store.createDocument({
+      title: 'test.md', sourceType: 'local', sourcePath: '/test.md', fileType: '.md',
+    })
+    const embedResult = await embedder.embed!(['Redis configuration guide', 'Python tutorial basics', 'Database setup instructions'])
+    await store.storeChunks(doc.id, [
+      { content: 'Redis configuration guide', embedding: embedResult.dense[0], chunkType: 'semantic', position: 0, tokenCount: 3, headingHierarchy: ['# Redis'] },
+      { content: 'Python tutorial basics', embedding: embedResult.dense[1], chunkType: 'semantic', position: 1, tokenCount: 3, headingHierarchy: ['# Python'] },
+      { content: 'Database setup instructions', embedding: embedResult.dense[2], chunkType: 'semantic', position: 2, tokenCount: 3, headingHierarchy: ['# Database'] },
+    ])
+  })
+
+  afterEach(async () => {
+    db.close()
+    await vectorDb.close()
+    rmSync(tempDir, { recursive: true, force: true })
+  })
+
+  it('retrieves relevant chunks for a query', async () => {
+    const results = await retriever.retrieve('Redis config', { k: 3, finalTopK: 2, minScore: 0 })
+    expect(results.length).toBeGreaterThan(0)
+    expect(results.length).toBeLessThanOrEqual(2)
+  })
+
+  it('returns empty for unrelated query with high minScore', async () => {
+    const results = await retriever.retrieve('quantum physics', { k: 3, finalTopK: 2, minScore: 0.99 })
+    expect(results).toHaveLength(0)
+  })
+})
