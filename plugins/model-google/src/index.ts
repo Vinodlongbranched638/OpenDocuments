@@ -34,6 +34,10 @@ export class GoogleModelPlugin implements ModelPlugin {
   private llmModel = 'gemini-2.5-flash'
   private embeddingModel = 'text-embedding-004'
 
+  private redactUrl(url: string): string {
+    return url.replace(/key=[^&]+/, 'key=[REDACTED]')
+  }
+
   async setup(ctx: PluginContext): Promise<void> {
     const config = ctx.config as GoogleConfig
     this.apiKey = config.apiKey || process.env.GOOGLE_API_KEY || ''
@@ -44,8 +48,9 @@ export class GoogleModelPlugin implements ModelPlugin {
   async healthCheck(): Promise<HealthStatus> {
     if (!this.apiKey) return { healthy: false, message: 'GOOGLE_API_KEY not set' }
     try {
-      const res = await fetchWithTimeout(`${this.baseUrl}/models?key=${this.apiKey}`, {}, 10000)
-      return { healthy: res.ok, message: res.ok ? 'Connected' : `HTTP ${res.status}` }
+      const url = `${this.baseUrl}/models?key=${this.apiKey}`
+      const res = await fetchWithTimeout(url, {}, 10000)
+      return { healthy: res.ok, message: res.ok ? 'Connected' : `HTTP ${res.status} at ${this.redactUrl(url)}` }
     } catch (err) {
       return { healthy: false, message: (err as Error).message }
     }
@@ -72,7 +77,7 @@ export class GoogleModelPlugin implements ModelPlugin {
       }),
     }, 120000)
 
-    if (!res.ok) throw new Error(`Google AI error: ${res.status}`)
+    if (!res.ok) throw new Error(`Google AI error: ${res.status} at ${this.redactUrl(url)}`)
     if (!res.body) throw new Error('No response body')
 
     const reader = res.body.getReader()
@@ -112,7 +117,7 @@ export class GoogleModelPlugin implements ModelPlugin {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ content: { parts: [{ text }] } }),
         }, 30000)
-        if (!res.ok) throw new Error(`Google embed error: ${res.status}`)
+        if (!res.ok) throw new Error(`Google embed error: ${res.status} at ${this.redactUrl(url)}`)
         const data = await res.json() as { embedding: { values: number[] } }
         return data.embedding.values
       })

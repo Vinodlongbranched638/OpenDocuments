@@ -16,7 +16,27 @@ export function createApp(ctx: AppContext, opts?: AppOptions) {
   const app = new Hono()
 
   // TODO: Read CORS origins from config.security.access.allowedOrigins when implemented
-  app.use('*', cors({ origin: '*' }))
+  app.use('*', cors({
+    origin: (origin) => {
+      // Allow localhost on any port
+      if (!origin) return '*'  // same-origin requests
+      if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+        return origin
+      }
+      // TODO: Read additional origins from config
+      return null  // reject other origins
+    },
+  }))
+
+  // Body size limit (50MB)
+  const MAX_BODY_SIZE = 50 * 1024 * 1024
+  app.use('/api/*', async (c, next) => {
+    const contentLength = c.req.header('content-length')
+    if (contentLength && parseInt(contentLength) > MAX_BODY_SIZE) {
+      return c.json({ error: 'Request body too large (max 50MB)' }, 413)
+    }
+    await next()
+  })
 
   app.route('/', healthRoutes(ctx))
   app.route('/', documentRoutes(ctx))

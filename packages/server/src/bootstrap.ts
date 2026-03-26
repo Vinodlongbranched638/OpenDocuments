@@ -315,7 +315,7 @@ export async function bootstrap(opts: BootstrapOptions = {}): Promise<AppContext
       embeddingDimensions,
     )
     await registry.register(embedder, pluginCtx)
-    if (llm !== embedder) await registry.register(llm, pluginCtx)
+    if (llm.name !== embedder.name) await registry.register(llm, pluginCtx)
 
     // 9. Create WorkspaceManager, ensure default workspace
     const workspaceManager = new WorkspaceManager(db)

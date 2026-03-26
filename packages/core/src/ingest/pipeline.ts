@@ -40,7 +40,7 @@ export class IngestPipeline {
     const contentHash = sha256(input.content)
 
     // Check for existing document by sourcePath
-    const existing = store.listDocuments().find(d => d.source_path === input.sourcePath)
+    const existing = store.getDocumentBySourcePath(input.sourcePath)
     if (existing) {
       if (!store.hasContentChanged(existing.id, contentHash)) {
         return { documentId: existing.id, chunks: existing.chunk_count ?? 0, status: 'skipped' }

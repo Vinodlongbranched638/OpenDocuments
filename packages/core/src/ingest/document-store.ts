@@ -89,6 +89,13 @@ export class DocumentStore {
     )
   }
 
+  getDocumentBySourcePath(sourcePath: string): DocumentRow | undefined {
+    return this.db.get<DocumentRow>(
+      'SELECT * FROM documents WHERE workspace_id = ? AND source_path = ? AND deleted_at IS NULL',
+      [this.workspaceId, sourcePath]
+    )
+  }
+
   async storeChunks(documentId: string, chunks: StoredChunk[]): Promise<void> {
     const vectorDocs = chunks.map((chunk, i) => ({
       id: `${documentId}_chunk_${i}`,
