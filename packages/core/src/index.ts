@@ -20,6 +20,8 @@ export { runMigrations } from './storage/migrations/runner.js'
 export type { VectorDB, VectorDocument, VectorSearchResult, VectorSearchOpts } from './storage/vector-db.js'
 export { createChromaDB } from './storage/chroma.js'
 
+export { WorkspaceManager, type Workspace } from './workspace/manager.js'
+
 export type {
   PluginType,
   PipelineStage,
