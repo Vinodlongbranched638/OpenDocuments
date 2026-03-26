@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import React, { useEffect } from 'react'
 import { Layout } from './components/layout/Layout'
 import { useAppStore } from './stores/appStore'
 import { ChatPage } from './components/chat/ChatPage'
@@ -6,7 +6,7 @@ import { DocumentsPage } from './components/documents/DocumentsPage'
 import { SettingsPage } from './components/settings/SettingsPage'
 import { HealthPage } from './components/health/HealthPage'
 
-const PAGES: Record<string, () => JSX.Element> = {
+const PAGES: Record<string, () => React.ReactElement> = {
   chat: ChatPage,
   documents: DocumentsPage,
   settings: SettingsPage,

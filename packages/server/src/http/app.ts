@@ -1,11 +1,18 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
+import { serveStatic } from '@hono/node-server/serve-static'
+import { join, extname } from 'node:path'
+import { existsSync, readFileSync, statSync } from 'node:fs'
 import { healthRoutes } from './routes/health.js'
 import { documentRoutes } from './routes/documents.js'
 import { chatRoutes } from './routes/chat.js'
 import type { AppContext } from '../bootstrap.js'
 
-export function createApp(ctx: AppContext) {
+export interface AppOptions {
+  webDir?: string
+}
+
+export function createApp(ctx: AppContext, opts?: AppOptions) {
   const app = new Hono()
 
   // TODO: Read CORS origins from config.security.access.allowedOrigins when implemented
@@ -24,9 +31,52 @@ export function createApp(ctx: AppContext) {
     }, 500)
   })
 
-  app.notFound((c) => {
-    return c.json({ error: 'Not found' }, 404)
-  })
+  // Serve web UI static files if webDir is provided
+  if (opts?.webDir) {
+    const webDir = opts.webDir
+
+    const MIME_TYPES: Record<string, string> = {
+      '.html': 'text/html; charset=utf-8',
+      '.js': 'application/javascript',
+      '.mjs': 'application/javascript',
+      '.css': 'text/css',
+      '.json': 'application/json',
+      '.png': 'image/png',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.gif': 'image/gif',
+      '.svg': 'image/svg+xml',
+      '.ico': 'image/x-icon',
+      '.woff': 'font/woff',
+      '.woff2': 'font/woff2',
+      '.ttf': 'font/ttf',
+      '.eot': 'application/vnd.ms-fontobject',
+    }
+
+    app.get('/*', async (c) => {
+      const reqPath = c.req.path === '/' ? '/index.html' : c.req.path
+      const filePath = join(webDir, reqPath)
+
+      if (existsSync(filePath) && statSync(filePath).isFile()) {
+        const content = readFileSync(filePath)
+        const ext = extname(filePath)
+        const contentType = MIME_TYPES[ext] || 'application/octet-stream'
+        return c.body(content as unknown as ReadableStream, 200, { 'Content-Type': contentType })
+      }
+
+      // SPA fallback: serve index.html for any unmatched route
+      const indexPath = join(webDir, 'index.html')
+      if (existsSync(indexPath)) {
+        return c.html(readFileSync(indexPath, 'utf-8'))
+      }
+
+      return c.json({ error: 'Not found' }, 404)
+    })
+  } else {
+    app.notFound((c) => {
+      return c.json({ error: 'Not found' }, 404)
+    })
+  }
 
   // TODO(Phase 2): Add WebSocket endpoint at /api/v1/ws/chat
   // Currently covered by SSE streaming at POST /api/v1/chat/stream
