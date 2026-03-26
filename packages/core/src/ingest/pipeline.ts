@@ -8,6 +8,7 @@ import { sha256 } from '../utils/hash.js'
 import type { StoredChunk } from './document-store.js'
 import type { ParsedChunk, RawDocument, ParserPlugin } from '../plugin/interfaces.js'
 import type { OpenDocsConfig } from '../config/schema.js'
+import type { PIIRedactor } from '../security/redactor.js'
 
 export interface IngestInput {
   title: string
@@ -31,12 +32,17 @@ export interface IngestPipelineOptions {
   middleware: MiddlewareRunner
   embeddingDimensions: number
   config?: OpenDocsConfig
+  redactor?: PIIRedactor
 }
 
 const BATCH_SIZE = 32
 
 export class IngestPipeline {
-  constructor(private opts: IngestPipelineOptions) {}
+  private redactor?: PIIRedactor
+
+  constructor(private opts: IngestPipelineOptions) {
+    this.redactor = opts.redactor
+  }
 
   private async parseWithFallback(
     raw: RawDocument,
@@ -120,6 +126,13 @@ export class IngestPipeline {
 
       // Apply after:parse middleware
       await middleware.run('after:parse', parsedChunks)
+
+      // PII redaction: scrub parsed chunk content before chunking/embedding
+      if (this.redactor?.isEnabled()) {
+        for (const chunk of parsedChunks) {
+          chunk.content = this.redactor.redact(chunk.content)
+        }
+      }
 
       eventBus.emit('document:parsed', { documentId, chunks: parsedChunks.length })
 

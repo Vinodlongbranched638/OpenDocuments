@@ -19,6 +19,7 @@ import {
   ConversationManager,
   ConnectorManager,
   APIKeyManager,
+  PIIRedactor,
   type DB,
   type VectorDB,
   type ModelPlugin,
@@ -359,6 +360,9 @@ export async function bootstrap(opts: BootstrapOptions = {}): Promise<AppContext
     await store.initialize(embeddingDimensions)
 
     // 11. Create IngestPipeline and RAGEngine
+    const autoRedactConfig = config.security.dataPolicy.autoRedact
+    const redactor = new PIIRedactor(autoRedactConfig)
+
     const pipeline = new IngestPipeline({
       store,
       registry,
@@ -366,6 +370,7 @@ export async function bootstrap(opts: BootstrapOptions = {}): Promise<AppContext
       middleware,
       embeddingDimensions,
       config,
+      redactor,
     })
 
     // Capture for shutdown closure

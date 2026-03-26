@@ -49,6 +49,8 @@ export { ConversationManager, type Conversation, type Message } from './conversa
 
 export { APIKeyManager, generateAPIKey, type APIKeyRecord, type APIKeyScope, type UserRole, type CreateKeyInput, type ValidatedKey } from './auth/api-key.js'
 
+export { PIIRedactor, type RedactorConfig } from './security/redactor.js'
+
 export type {
   PluginType,
   PipelineStage,
