@@ -1,3 +1,8 @@
+/**
+ * Web Search Provider -- NOT a standard ConnectorPlugin.
+ * Used by the RAG engine for real-time web search results.
+ * Does not implement discover/fetch since web search is query-time, not index-time.
+ */
 import type { PluginContext, HealthStatus } from '@opendocs/core'
 
 export interface WebSearchConfig {

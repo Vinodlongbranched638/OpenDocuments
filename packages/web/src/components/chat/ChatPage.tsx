@@ -15,6 +15,8 @@ export function ChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, currentStreamText])
 
+  // TODO: Create conversation on first message and persist conversationId
+  // Blocked by: streaming endpoint needs to persist messages (I8 fix)
   const handleSend = async (query: string) => {
     const store = useChatStore.getState()
     store.addUserMessage(query)

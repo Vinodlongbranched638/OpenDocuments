@@ -109,22 +109,29 @@ export class GoogleModelPlugin implements ModelPlugin {
   }
 
   async embed(texts: string[]): Promise<EmbeddingResult> {
-    // TODO(Phase 2): Use batchEmbedContents endpoint for larger batches (>10 texts)
-    // to reduce HTTP overhead: POST /v1beta/models/{model}:batchEmbedContents
-    const results = await Promise.all(
-      texts.map(async (text) => {
-        const url = `${this.baseUrl}/models/${this.embeddingModel}:embedContent?key=${this.apiKey}`
-        const res = await fetchWithTimeout(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content: { parts: [{ text }] } }),
-        }, 30000)
-        if (!res.ok) throw new Error(`Google embed error: ${res.status} at ${this.redactUrl(url)}`)
-        const data = await res.json() as { embedding: { values: number[] } }
-        return data.embedding.values
-      })
-    )
-    return { dense: results }
+    // Process in batches of 5 to avoid rate limits
+    const BATCH_SIZE = 5
+    const allEmbeddings: number[][] = []
+
+    for (let i = 0; i < texts.length; i += BATCH_SIZE) {
+      const batch = texts.slice(i, i + BATCH_SIZE)
+      const results = await Promise.all(
+        batch.map(async (text) => {
+          const url = `${this.baseUrl}/models/${this.embeddingModel}:embedContent?key=${this.apiKey}`
+          const res = await fetchWithTimeout(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: { parts: [{ text }] } }),
+          }, 30000)
+          if (!res.ok) throw new Error(`Google embed error: ${res.status} at ${this.redactUrl(url)}`)
+          const data = await res.json() as { embedding: { values: number[] } }
+          return data.embedding.values
+        })
+      )
+      allEmbeddings.push(...results)
+    }
+
+    return { dense: allEmbeddings }
   }
 }
 

@@ -46,7 +46,7 @@ export class ConversationManager {
       `INSERT INTO messages (id, conversation_id, role, content, sources, profile_used, confidence_score, response_time_ms, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [id, conversationId, role, content, meta?.sources ? JSON.stringify(meta.sources) : null,
-       meta?.profileUsed || null, meta?.confidenceScore || null, meta?.responseTimeMs || null, now]
+       meta?.profileUsed || null, meta?.confidenceScore ?? null, meta?.responseTimeMs ?? null, now]
     )
     // Update conversation timestamp
     this.db.run('UPDATE conversations SET updated_at = ? WHERE id = ?', [now, conversationId])

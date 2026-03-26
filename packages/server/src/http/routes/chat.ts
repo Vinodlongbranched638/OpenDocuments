@@ -52,14 +52,31 @@ export function chatRoutes(ctx: AppContext) {
     } catch {
       return c.json({ error: 'Invalid JSON body' }, 400)
     }
+    if (!body.query) return c.json({ error: 'query is required' }, 400)
+
     return streamSSE(c, async (stream) => {
-      if (!body.query) {
-        await stream.writeSSE({ data: JSON.stringify({ type: 'error', data: 'query is required' }) })
-        return
-      }
+      let fullAnswer = ''
+      let sources: any[] = []
+      let confidence: any = null
+
       for await (const event of ctx.ragEngine.queryStream({ query: body.query, profile: body.profile })) {
         await stream.writeSSE({ event: event.type, data: JSON.stringify(event.data) })
+
+        if (event.type === 'chunk') fullAnswer += event.data
+        if (event.type === 'sources') sources = event.data as any[]
+        if (event.type === 'confidence') confidence = event.data
       }
+
+      // Persist conversation after streaming completes
+      try {
+        const conversationId = body.conversationId || ctx.conversationManager.create().id
+        ctx.conversationManager.addMessage(conversationId, 'user', body.query)
+        ctx.conversationManager.addMessage(conversationId, 'assistant', fullAnswer, {
+          sources,
+          profileUsed: body.profile || 'balanced',
+          confidenceScore: confidence?.score,
+        })
+      } catch {} // Don't fail the response if persistence fails
     })
   })
 

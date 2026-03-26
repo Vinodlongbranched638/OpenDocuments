@@ -377,6 +377,9 @@ export async function bootstrap(opts: BootstrapOptions = {}): Promise<AppContext
     // 12. Create ConversationManager
     const conversationManager = new ConversationManager(db, defaultWorkspace.id)
 
+    // Note: @opendocs/connector-web-search is a query-time utility, not an index-time connector.
+    // It is loaded on-demand by the RAG engine when webSearch profile feature is enabled.
+
     // 13. Create ConnectorManager
     const connectorManager = new ConnectorManager(pipeline, store, eventBus, db, defaultWorkspace.id)
 

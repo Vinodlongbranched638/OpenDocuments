@@ -10,6 +10,10 @@ export function conversationRoutes(ctx: AppContext) {
   })
 
   app.get('/api/v1/conversations/:id/messages', (c) => {
+    // Check conversation exists
+    const convo = ctx.db.get('SELECT id FROM conversations WHERE id = ? AND deleted_at IS NULL', [c.req.param('id')])
+    if (!convo) return c.json({ error: 'Conversation not found' }, 404)
+
     const messages = ctx.conversationManager.getMessages(c.req.param('id'))
     return c.json({ messages })
   })

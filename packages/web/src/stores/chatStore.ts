@@ -7,6 +7,7 @@ interface ChatState {
   currentStreamText: string
   currentSources: SearchResult[]
   currentConfidence: ConfidenceResult | null
+  conversationId: string | null
 
   addUserMessage: (content: string) => void
   startStreaming: () => void
@@ -14,6 +15,7 @@ interface ChatState {
   setSources: (sources: SearchResult[]) => void
   setConfidence: (confidence: ConfidenceResult) => void
   finishStreaming: (profile: string) => void
+  setConversationId: (id: string) => void
   clearMessages: () => void
 }
 
@@ -25,6 +27,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   currentStreamText: '',
   currentSources: [],
   currentConfidence: null,
+  conversationId: null,
 
   addUserMessage: (content) => {
     set((s) => ({
@@ -71,5 +74,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }))
   },
 
-  clearMessages: () => set({ messages: [], isStreaming: false, currentStreamText: '' }),
+  setConversationId: (id) => set({ conversationId: id }),
+
+  clearMessages: () => set({ messages: [], isStreaming: false, currentStreamText: '', conversationId: null }),
 }))
