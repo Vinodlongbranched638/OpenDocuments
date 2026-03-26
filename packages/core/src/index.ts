@@ -13,6 +13,10 @@ export { configSchema, type OpenDocsConfig } from './config/schema.js'
 export { loadConfig, validateConfig, defineConfig } from './config/loader.js'
 export { DEFAULT_CONFIG } from './config/defaults.js'
 
+export type { DB, Row, DBFactory } from './storage/db.js'
+export { createSQLiteDB } from './storage/sqlite.js'
+export { runMigrations } from './storage/migrations/runner.js'
+
 export type {
   PluginType,
   PipelineStage,
