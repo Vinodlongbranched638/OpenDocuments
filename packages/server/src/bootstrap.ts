@@ -95,6 +95,58 @@ function createStubModels(dimensions: number) {
 /*  Dynamic model plugin loader                                       */
 /* ------------------------------------------------------------------ */
 
+async function loadSinglePlugin(
+  provider: string,
+  apiKey: string,
+  baseUrl: string,
+  llmModel: string,
+  embeddingModel: string,
+  pluginCtx: PluginContext,
+): Promise<ModelPlugin | null> {
+  const packageName = PROVIDER_MAP[provider]
+  if (!packageName) {
+    console.warn(`Unknown model provider: ${provider}.`)
+    return null
+  }
+
+  try {
+    const mod = await import(packageName)
+
+    let plugin: ModelPlugin
+
+    if (typeof mod.default === 'object' && mod.default !== null && typeof mod.default.setup === 'function') {
+      plugin = mod.default
+    } else if (typeof mod.default === 'function') {
+      plugin = new mod.default()
+    } else {
+      const ClassName = Object.values(mod).find(
+        (v) => typeof v === 'function' && (v as any).prototype?.setup,
+      ) as any
+      if (ClassName) {
+        plugin = new ClassName()
+      } else {
+        throw new Error(`Plugin ${packageName} does not export a valid ModelPlugin`)
+      }
+    }
+
+    const modelPluginCtx: PluginContext = {
+      ...pluginCtx,
+      config: {
+        apiKey,
+        baseUrl,
+        llmModel,
+        embeddingModel,
+      } as any,
+    }
+
+    await plugin.setup(modelPluginCtx)
+    return plugin
+  } catch (err) {
+    console.warn(`Failed to load model plugin ${packageName}: ${(err as Error).message}.`)
+    return null
+  }
+}
+
 async function loadModelPlugin(
   provider: string,
   modelConfig: OpenDocsConfig['model'],
@@ -109,48 +161,26 @@ async function loadModelPlugin(
   }
 
   try {
-    const mod = await import(packageName)
+    const mainPlugin = await loadSinglePlugin(
+      provider,
+      modelConfig.apiKey || '',
+      modelConfig.baseUrl || '',
+      modelConfig.llm,
+      modelConfig.embedding,
+      pluginCtx,
+    )
 
-    let plugin: ModelPlugin
-
-    if (typeof mod.default === 'object' && mod.default !== null && typeof mod.default.setup === 'function') {
-      // Default export is a plugin instance
-      plugin = mod.default
-    } else if (typeof mod.default === 'function') {
-      // Default export is a class
-      plugin = new mod.default()
-    } else {
-      // Try named exports
-      const ClassName = Object.values(mod).find(
-        (v) => typeof v === 'function' && (v as any).prototype?.setup,
-      ) as any
-      if (ClassName) {
-        plugin = new ClassName()
-      } else {
-        throw new Error(`Plugin ${packageName} does not export a valid ModelPlugin`)
-      }
+    if (!mainPlugin) {
+      return createStubModels(embeddingDimensions)
     }
-
-    // Set up plugin with model-specific config
-    const modelPluginCtx: PluginContext = {
-      ...pluginCtx,
-      config: {
-        apiKey: modelConfig.apiKey || '',
-        baseUrl: modelConfig.baseUrl || '',
-        llmModel: modelConfig.llm,
-        embeddingModel: modelConfig.embedding,
-      } as any,
-    }
-
-    await plugin.setup(modelPluginCtx)
 
     // Probe the embedding capability with a test call to verify the plugin is
     // actually functional (e.g. the remote model server is running with the
     // required model installed). Fall back to stubs on any failure so that the
     // server can still start and serve requests in degraded mode.
-    if (plugin.capabilities.embedding && plugin.embed) {
+    if (mainPlugin.capabilities.embedding && mainPlugin.embed) {
       try {
-        await plugin.embed(['probe'])
+        await mainPlugin.embed(['probe'])
       } catch (probeErr) {
         console.warn(
           `Model plugin ${packageName} embed probe failed: ${(probeErr as Error).message}. Using stub models.`,
@@ -159,12 +189,38 @@ async function loadModelPlugin(
       }
     }
 
-    // If the plugin supports embedding use it; otherwise fall back to stub embedder
-    const embedder = plugin.capabilities.embedding
-      ? plugin
-      : createStubEmbedder(embeddingDimensions)
+    // If the main plugin doesn't support embedding, load a secondary embedding provider
+    if (!mainPlugin.capabilities.embedding) {
+      const embeddingProvider = modelConfig.embeddingProvider || 'ollama'
+      console.info(`Main provider '${provider}' does not support embedding. Loading secondary embedding provider: ${embeddingProvider}`)
 
-    return { embedder, llm: plugin }
+      const embeddingPlugin = await loadSinglePlugin(
+        embeddingProvider,
+        modelConfig.embeddingApiKey || modelConfig.apiKey || '',
+        modelConfig.baseUrl || '',
+        modelConfig.llm,
+        modelConfig.embedding,
+        pluginCtx,
+      )
+
+      if (embeddingPlugin && embeddingPlugin.capabilities.embedding && embeddingPlugin.embed) {
+        try {
+          await embeddingPlugin.embed(['probe'])
+          return { embedder: embeddingPlugin, llm: mainPlugin }
+        } catch (probeErr) {
+          console.warn(
+            `Secondary embedding provider '${embeddingProvider}' probe failed: ${(probeErr as Error).message}. Falling back to stub embedder.`,
+          )
+        }
+      } else if (embeddingPlugin) {
+        console.warn(`Secondary embedding provider '${embeddingProvider}' does not support embedding. Falling back to stub embedder.`)
+      }
+
+      // Last resort: stub embedder
+      return { embedder: createStubEmbedder(embeddingDimensions), llm: mainPlugin }
+    }
+
+    return { embedder: mainPlugin, llm: mainPlugin }
   } catch (err) {
     console.warn(
       `Failed to load model plugin ${packageName}: ${(err as Error).message}. Using stub models.`,

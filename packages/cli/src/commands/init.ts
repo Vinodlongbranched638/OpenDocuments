@@ -50,6 +50,8 @@ export function initCommand() {
 
       let provider = 'ollama'
       let apiKey = ''
+      let embeddingProvider: string | undefined
+      let embeddingApiKey: string | undefined
       let llmModel = 'qwen2.5:14b'
       let embeddingModel = 'bge-m3'
 
@@ -97,9 +99,17 @@ export function initCommand() {
               { name: `OpenAI (text-embedding-3-small) ${chalk.dim('-- requires OpenAI API key')}`, value: 'openai' },
             ],
           })
-          // Note: Embedding from a different provider requires additional setup
-          // For now, just use the default BGE-M3 and warn
-          log.info(`Embedding will use ${embeddingChoice === 'ollama' ? 'Ollama BGE-M3' : 'OpenAI'} (configure separately)`)
+          embeddingProvider = embeddingChoice
+          if (embeddingChoice === 'openai') {
+            embeddingModel = 'text-embedding-3-small'
+            embeddingApiKey = await input({
+              message: `OpenAI API Key for embeddings (or set OPENAI_API_KEY env var):`,
+              default: '',
+            })
+          } else {
+            embeddingModel = 'bge-m3'
+          }
+          log.info(`Embedding will use ${embeddingChoice === 'ollama' ? 'Ollama BGE-M3' : 'OpenAI text-embedding-3-small'}`)
         }
       } else {
         // Local model recommendation
@@ -151,6 +161,8 @@ export function initCommand() {
         mode: mode as 'personal' | 'team',
         provider,
         apiKey,
+        embeddingProvider,
+        embeddingApiKey,
         llmModel,
         embeddingModel,
         profile,
@@ -161,10 +173,12 @@ export function initCommand() {
 
       // Write .env file with the actual key (never written to config)
       const envVarName = getEnvVarName(provider)
-      if (apiKey) {
-        const envContent = `${envVarName}=${apiKey}\n`
-        writeFileSync(join(projectDir, '.env'), envContent)
-        log.ok(`API key saved to ${chalk.cyan('.env')} (add to .gitignore!)`)
+      const envLines: string[] = []
+      if (apiKey) envLines.push(`${envVarName}=${apiKey}`)
+      if (embeddingApiKey) envLines.push(`OPENAI_API_KEY=${embeddingApiKey}`)
+      if (envLines.length > 0) {
+        writeFileSync(join(projectDir, '.env'), envLines.join('\n') + '\n')
+        log.ok(`API key(s) saved to ${chalk.cyan('.env')} (add to .gitignore!)`)
       }
 
       // 9. Summary
@@ -217,6 +231,8 @@ interface ConfigOptions {
   mode: 'personal' | 'team'
   provider: string
   apiKey: string
+  embeddingProvider?: string
+  embeddingApiKey?: string
   llmModel: string
   embeddingModel: string
   profile: string
@@ -236,8 +252,16 @@ function generateConfigFile(opts: ConfigOptions): string {
     `    embedding: '${opts.embeddingModel}',`,
   ]
 
+  if (opts.embeddingProvider) {
+    lines.push(`    embeddingProvider: '${opts.embeddingProvider}',`)
+  }
+
   if (opts.apiKey) {
     lines.push(`    apiKey: process.env.${getEnvVarName(opts.provider)},`)
+  }
+
+  if (opts.embeddingApiKey || opts.embeddingProvider === 'openai') {
+    lines.push(`    embeddingApiKey: process.env.OPENAI_API_KEY,`)
   }
 
   lines.push(

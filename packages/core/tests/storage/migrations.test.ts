@@ -13,6 +13,7 @@ describe('Migration Runner', () => {
     db = createSQLiteDB(':memory:')
     const result = runMigrations(db)
     expect(result.applied).toContain('001_initial.sql')
+    expect(result.applied).toContain('002_add_versioning_collections.sql')
 
     const tables = db.all<{ name: string }>(
       "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
@@ -27,6 +28,10 @@ describe('Migration Runner', () => {
     expect(tableNames).toContain('audit_logs')
     expect(tableNames).toContain('plugins')
     expect(tableNames).toContain('schema_migrations')
+    expect(tableNames).toContain('document_versions')
+    expect(tableNames).toContain('collections')
+    expect(tableNames).toContain('collection_documents')
+    expect(tableNames).toContain('chunk_relations')
   })
 
   it('does not re-apply already applied migrations', () => {

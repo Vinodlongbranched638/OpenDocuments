@@ -43,7 +43,9 @@ export const configSchema = z.object({
     provider: z.string().default('ollama'),
     llm: z.string().default('qwen2.5:14b'),
     embedding: z.string().default('bge-m3'),
+    embeddingProvider: z.string().optional(),  // override for embedding (e.g., 'openai' when LLM is 'anthropic')
     apiKey: z.string().optional(),
+    embeddingApiKey: z.string().optional(),    // separate API key for embedding provider
     baseUrl: z.string().optional(),
     embeddingDimensions: z.number().optional(),
   }).default({}),
