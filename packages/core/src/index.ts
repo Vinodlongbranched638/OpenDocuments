@@ -32,6 +32,8 @@ export { IngestPipeline, type IngestInput, type IngestResult, type IngestPipelin
 
 export { MarkdownParser } from './parsers/markdown.js'
 
+export { getProfileConfig, type RAGProfileConfig } from './rag/profiles.js'
+
 export type {
   PluginType,
   PipelineStage,
