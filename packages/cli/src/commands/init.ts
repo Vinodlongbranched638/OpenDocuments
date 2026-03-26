@@ -181,6 +181,21 @@ export function initCommand() {
         log.ok(`API key(s) saved to ${chalk.cyan('.env')} (add to .gitignore!)`)
       }
 
+      // Write .gitignore if one doesn't exist
+      const gitignorePath = join(projectDir, '.gitignore')
+      if (!existsSync(gitignorePath)) {
+        writeFileSync(gitignorePath, [
+          'node_modules/',
+          '.env',
+          '.env.local',
+          '*.db',
+          '*.sqlite',
+          '.opendocs/',
+          '',
+        ].join('\n'))
+        log.ok(`.gitignore created`)
+      }
+
       // 9. Summary
       log.blank()
       log.heading('Setup Complete')

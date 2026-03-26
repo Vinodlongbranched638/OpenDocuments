@@ -13,7 +13,8 @@ export interface TextChunk {
 function estimateTokens(text: string): number {
   const cjk = (text.match(/[\u3000-\u9fff\uac00-\ud7af]/g) || []).length
   const nonCjk = text.length - cjk
-  return Math.ceil(nonCjk / 4 + cjk / 2)
+  // English: ~4 chars/token, Korean/CJK: ~1.5 chars/token (most LLM tokenizers)
+  return Math.ceil(nonCjk / 4 + cjk / 1.5)
 }
 
 
