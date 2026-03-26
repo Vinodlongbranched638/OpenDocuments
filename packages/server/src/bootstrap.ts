@@ -380,24 +380,39 @@ export async function bootstrap(opts: BootstrapOptions = {}): Promise<AppContext
     // 13. Create ConnectorManager
     const connectorManager = new ConnectorManager(pipeline, store, eventBus, db, defaultWorkspace.id)
 
-    // Auto-register installed connector plugins
-    const CONNECTOR_PLUGINS = [
-      '@opendocs/connector-github',
-      '@opendocs/connector-notion',
-      '@opendocs/connector-web-crawler',
-    ]
+    // Connector type -> package mapping
+    const CONNECTOR_PLUGINS_MAP: Record<string, string> = {
+      github: '@opendocs/connector-github',
+      notion: '@opendocs/connector-notion',
+      'web-crawler': '@opendocs/connector-web-crawler',
+    }
 
-    for (const name of CONNECTOR_PLUGINS) {
+    // Config-driven connector registration
+    for (const connectorConfig of config.connectors) {
+      const packageName = CONNECTOR_PLUGINS_MAP[connectorConfig.type]
+      if (!packageName) continue
+
       try {
-        const mod = await import(name)
+        const mod = await import(packageName)
         const ConnectorClass = mod.default
-        if (typeof ConnectorClass === 'function') {
-          const connector = new ConnectorClass()
-          await connector.setup(pluginCtx)
-          await registry.register(connector, pluginCtx)
+        if (typeof ConnectorClass !== 'function') continue
+
+        const connector = new ConnectorClass()
+
+        // Create a context with connector-specific config
+        const connectorCtx: PluginContext = {
+          config: connectorConfig as unknown as Record<string, unknown>,
+          dataDir,
+          log: pluginCtx.log,
         }
-      } catch {
-        // Plugin not installed -- skip silently
+
+        await registry.register(connector, connectorCtx)
+        connectorManager.registerConnector(connector, {
+          name: connectorConfig.type,
+          syncIntervalSeconds: (connectorConfig as any).syncInterval || 300,
+        })
+      } catch (err) {
+        log.fail(`Failed to load connector ${connectorConfig.type}: ${(err as Error).message}`)
       }
     }
 

@@ -3,7 +3,6 @@ import type { IngestPipeline } from '../ingest/pipeline.js'
 import type { DocumentStore } from '../ingest/document-store.js'
 import type { EventBus } from '../events/bus.js'
 import type { DB } from '../storage/db.js'
-import { sha256 } from '../utils/hash.js'
 import { randomUUID } from 'node:crypto'
 import { extname } from 'node:path'
 
@@ -80,7 +79,6 @@ export class ConnectorManager {
 
           // Fetch full content
           const raw = await plugin.fetch({ sourceId: discovered.sourceId, sourcePath: discovered.sourcePath })
-          const content = typeof raw.content === 'string' ? raw.content : raw.content
 
           // Determine file type from path or mime type
           const fileType = extname(discovered.sourcePath) || '.md'
@@ -88,7 +86,7 @@ export class ConnectorManager {
           // Ingest through pipeline
           const ingestResult = await this.pipeline.ingest({
             title: discovered.title,
-            content,
+            content: raw.content,
             sourceType: plugin.name,
             sourcePath: discovered.sourcePath,
             fileType,
