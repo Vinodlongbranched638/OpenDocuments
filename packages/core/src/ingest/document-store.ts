@@ -149,7 +149,8 @@ export class DocumentStore {
 
   async deleteDocument(documentId: string): Promise<void> {
     // Step 1: Delete vectors. If this throws, SQLite delete is never reached -- both stores remain consistent.
-    await this.vectorDb.deleteByFilter(COLLECTION, `document_id = '${documentId}'`)
+    const safeId = documentId.replace(/'/g, "''")
+    await this.vectorDb.deleteByFilter(COLLECTION, `document_id = '${safeId}'`)
 
     // Step 2: Delete SQLite row.
     // If vector deletion succeeded but this fails, the document row remains with no backing vectors.

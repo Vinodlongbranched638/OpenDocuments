@@ -2,6 +2,29 @@
 import * as lancedb from '@lancedb/lancedb'
 import type { VectorDB, VectorDocument, VectorSearchOpts, VectorSearchResult } from './vector-db.js'
 
+function sanitizeFilterValue(value: string | number | boolean): string {
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value)
+  }
+  // Escape single quotes to prevent injection
+  return value.replace(/'/g, "''")
+}
+
+function buildWhereClause(filter: Record<string, string | number | boolean>): string {
+  return Object.entries(filter)
+    .map(([key, value]) => {
+      // Only allow alphanumeric column names
+      if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key)) {
+        throw new Error(`Invalid filter key: ${key}`)
+      }
+      if (typeof value === 'number' || typeof value === 'boolean') {
+        return `${key} = ${value}`
+      }
+      return `${key} = '${sanitizeFilterValue(value)}'`
+    })
+    .join(' AND ')
+}
+
 /**
  * Metadata fields promoted to top-level LanceDB columns for efficient filtering.
  * Any remaining metadata is stored in `metadata_json` as a JSON string.
@@ -74,13 +97,7 @@ export async function createLanceDB(dataDir: string): Promise<VectorDB> {
 
       // Apply filter if provided: convert { key: value } to SQL-like where clause
       if (opts.filter && Object.keys(opts.filter).length > 0) {
-        const conditions = Object.entries(opts.filter).map(([key, value]) => {
-          if (typeof value === 'string') {
-            return `${key} = '${value}'`
-          }
-          return `${key} = ${value}`
-        })
-        query = query.where(conditions.join(' AND '))
+        query = query.where(buildWhereClause(opts.filter))
       }
 
       const results = await (query as lancedb.VectorQuery).toArray()
