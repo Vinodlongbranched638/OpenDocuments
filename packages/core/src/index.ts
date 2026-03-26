@@ -17,6 +17,9 @@ export type { DB, Row, DBFactory } from './storage/db.js'
 export { createSQLiteDB } from './storage/sqlite.js'
 export { runMigrations } from './storage/migrations/runner.js'
 
+export type { VectorDB, VectorDocument, VectorSearchResult, VectorSearchOpts } from './storage/vector-db.js'
+export { createChromaDB } from './storage/chroma.js'
+
 export type {
   PluginType,
   PipelineStage,
