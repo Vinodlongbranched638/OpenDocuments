@@ -47,6 +47,8 @@ export { RAGEngine, type QueryInput, type QueryResult, type RAGEngineOptions } f
 
 export { ConversationManager, type Conversation, type Message } from './conversation/manager.js'
 
+export { APIKeyManager, generateAPIKey, type APIKeyRecord, type APIKeyScope, type UserRole, type CreateKeyInput, type ValidatedKey } from './auth/api-key.js'
+
 export type {
   PluginType,
   PipelineStage,
