@@ -31,7 +31,7 @@ export function documentRoutes(ctx: AppContext) {
       content,
       sourceType: 'upload',
       sourcePath: file.name,
-      fileType: '.' + file.name.split('.').pop(),
+      fileType: file.name.includes('.') ? '.' + file.name.split('.').pop() : undefined,
     })
     return c.json(result, 201)
   })

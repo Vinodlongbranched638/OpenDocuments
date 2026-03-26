@@ -68,6 +68,8 @@ const TOOLS = [
   },
 ]
 
+// TODO(Phase 2): Add MCP Resources (opendocs://documents, opendocs://documents/{id}, opendocs://stats)
+// Currently only tools are exposed. Add resources capability when needed.
 export function createMCPServer(ctx: AppContext): Server {
   const server = new Server(
     { name: 'opendocs', version: '0.1.0' },

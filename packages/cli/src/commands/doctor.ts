@@ -31,7 +31,7 @@ export function doctorCommand() {
         const modelNames = new Set(models.map((m) => m.name))
         for (const p of ctx.registry.listAll()) {
           if (modelNames.has(p.name) && p.name.includes('stub')) {
-            log.wait(`${p.name.padEnd(35)} v${p.version} (not configured)`)
+            log.wait(`${p.name.padEnd(35)} v${p.version} (not configured -- zero vectors)`)
           } else {
             log.ok(`${p.name.padEnd(35)} v${p.version}`)
           }

@@ -8,6 +8,7 @@ export function startCommand() {
     .description('Start OpenDocs server')
     .option('-p, --port <port>', 'Port number', '3000')
     .option('--mcp-only', 'Start MCP server only (stdio mode)')
+    .option('--no-web', 'Disable web UI static serving')
     .action(async (opts) => {
       log.heading('OpenDocs Server')
       if (opts.mcpOnly) {

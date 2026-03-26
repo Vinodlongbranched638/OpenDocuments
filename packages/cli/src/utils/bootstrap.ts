@@ -1,5 +1,7 @@
 import { bootstrap, type AppContext } from '@opendocs/server'
 
+// Module-level cache: single CLI invocation shares one context.
+// This is intentional for CLI use. Tests should import from @opendocs/server directly.
 let cachedCtx: AppContext | null = null
 
 export async function getContext(): Promise<AppContext> {
