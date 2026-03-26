@@ -2,22 +2,15 @@ import { useEffect } from 'react'
 import { Layout } from './components/layout/Layout'
 import { useAppStore } from './stores/appStore'
 import { ChatPage } from './components/chat/ChatPage'
-
-function DocumentsPlaceholder() {
-  return <div className="p-8 text-gray-500">Documents page (coming next)</div>
-}
-function SettingsPlaceholder() {
-  return <div className="p-8 text-gray-500">Settings page</div>
-}
-function HealthPlaceholder() {
-  return <div className="p-8 text-gray-500">Health page</div>
-}
+import { DocumentsPage } from './components/documents/DocumentsPage'
+import { SettingsPage } from './components/settings/SettingsPage'
+import { HealthPage } from './components/health/HealthPage'
 
 const PAGES: Record<string, () => JSX.Element> = {
   chat: ChatPage,
-  documents: DocumentsPlaceholder,
-  settings: SettingsPlaceholder,
-  health: HealthPlaceholder,
+  documents: DocumentsPage,
+  settings: SettingsPage,
+  health: HealthPage,
 }
 
 export function App() {
