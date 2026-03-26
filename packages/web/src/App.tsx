@@ -1,13 +1,10 @@
 import { useEffect } from 'react'
 import { Layout } from './components/layout/Layout'
 import { useAppStore } from './stores/appStore'
+import { ChatPage } from './components/chat/ChatPage'
 
-// Lazy page placeholders (will be replaced in T4/T5)
-function ChatPlaceholder() {
-  return <div className="p-8 text-gray-500">Chat page (coming next)</div>
-}
 function DocumentsPlaceholder() {
-  return <div className="p-8 text-gray-500">Documents page</div>
+  return <div className="p-8 text-gray-500">Documents page (coming next)</div>
 }
 function SettingsPlaceholder() {
   return <div className="p-8 text-gray-500">Settings page</div>
@@ -17,7 +14,7 @@ function HealthPlaceholder() {
 }
 
 const PAGES: Record<string, () => JSX.Element> = {
-  chat: ChatPlaceholder,
+  chat: ChatPage,
   documents: DocumentsPlaceholder,
   settings: SettingsPlaceholder,
   health: HealthPlaceholder,
@@ -30,7 +27,7 @@ export function App() {
     document.documentElement.classList.toggle('dark', effectiveTheme === 'dark')
   }, [effectiveTheme])
 
-  const Page = PAGES[currentPage] || ChatPlaceholder
+  const Page = PAGES[currentPage] || ChatPage
 
   return (
     <Layout>
