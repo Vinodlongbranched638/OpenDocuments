@@ -25,7 +25,12 @@ export function documentRoutes(ctx: AppContext) {
     if (!file || !(file instanceof File)) {
       return c.json({ error: 'No file provided' }, 400)
     }
-    const content = await file.text()
+    // Read as buffer for binary files, text for known text formats
+    const textExtensions = ['.md', '.mdx', '.txt', '.json', '.yaml', '.yml', '.toml', '.csv']
+    const ext = '.' + (file.name.split('.').pop() || '')
+    const content = textExtensions.includes(ext)
+      ? await file.text()
+      : Buffer.from(await file.arrayBuffer())
     const result = await ctx.pipeline.ingest({
       title: file.name,
       content,

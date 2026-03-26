@@ -104,21 +104,20 @@ export class GoogleModelPlugin implements ModelPlugin {
   }
 
   async embed(texts: string[]): Promise<EmbeddingResult> {
-    const embeddings: number[][] = []
-    for (const text of texts) {
-      const url = `${this.baseUrl}/models/${this.embeddingModel}:embedContent?key=${this.apiKey}`
-      const res = await fetchWithTimeout(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content: { parts: [{ text }] },
-        }),
-      }, 30000)
-      if (!res.ok) throw new Error(`Google embed error: ${res.status}`)
-      const data = (await res.json()) as { embedding: { values: number[] } }
-      embeddings.push(data.embedding.values)
-    }
-    return { dense: embeddings }
+    const results = await Promise.all(
+      texts.map(async (text) => {
+        const url = `${this.baseUrl}/models/${this.embeddingModel}:embedContent?key=${this.apiKey}`
+        const res = await fetchWithTimeout(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: { parts: [{ text }] } }),
+        }, 30000)
+        if (!res.ok) throw new Error(`Google embed error: ${res.status}`)
+        const data = await res.json() as { embedding: { values: number[] } }
+        return data.embedding.values
+      })
+    )
+    return { dense: results }
   }
 }
 
