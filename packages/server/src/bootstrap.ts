@@ -93,87 +93,101 @@ export async function bootstrap(opts: BootstrapOptions = {}): Promise<AppContext
 
   // 2. Create SQLite DB
   const dbPath = join(dataDir, 'opendocs.db')
-  const db = createSQLiteDB(dbPath)
+  let db: DB | null = null
+  let vectorDb: VectorDB | null = null
 
-  // 3. Run migrations
-  runMigrations(db)
+  try {
+    db = createSQLiteDB(dbPath)
 
-  // 4. Create LanceDB
-  const vectorDir = join(dataDir, 'vectors')
-  mkdirSync(vectorDir, { recursive: true })
-  const vectorDb = await createLanceDB(vectorDir)
+    // 3. Run migrations
+    runMigrations(db)
 
-  // 5. Create PluginRegistry, EventBus, MiddlewareRunner
-  const registry = new PluginRegistry()
-  const eventBus = new EventBus()
-  const middleware = new MiddlewareRunner()
+    // 4. Create LanceDB
+    const vectorDir = join(dataDir, 'vectors')
+    mkdirSync(vectorDir, { recursive: true })
+    vectorDb = await createLanceDB(vectorDir)
 
-  // 6. Create plugin context for setup calls
-  const pluginCtx: PluginContext = {
-    config: {},
-    dataDir,
-    log: {
-      ok: (msg: string) => console.log(`[ok] ${msg}`),
-      fail: (msg: string) => console.error(`[fail] ${msg}`),
-      info: (msg: string) => console.log(`[info] ${msg}`),
-      wait: (msg: string) => console.log(`[wait] ${msg}`),
-    },
-  }
+    // 5. Create PluginRegistry, EventBus, MiddlewareRunner
+    const registry = new PluginRegistry()
+    const eventBus = new EventBus()
+    const middleware = new MiddlewareRunner()
 
-  // 7. Register built-in MarkdownParser
-  const markdownParser = new MarkdownParser()
-  await registry.register(markdownParser, pluginCtx)
+    // 6. Create plugin context for setup calls
+    const pluginCtx: PluginContext = {
+      config: {},
+      dataDir,
+      log: {
+        ok: (msg: string) => console.log(`[ok] ${msg}`),
+        fail: (msg: string) => console.error(`[fail] ${msg}`),
+        info: (msg: string) => console.log(`[info] ${msg}`),
+        wait: (msg: string) => console.log(`[wait] ${msg}`),
+      },
+    }
 
-  // 8. Register stub embedder and LLM
-  const stubEmbedder = createStubEmbedder()
-  const stubLLM = createStubLLM()
-  await registry.register(stubEmbedder, pluginCtx)
-  await registry.register(stubLLM, pluginCtx)
+    // 7. Register built-in MarkdownParser
+    const markdownParser = new MarkdownParser()
+    await registry.register(markdownParser, pluginCtx)
 
-  // 9. Create WorkspaceManager, ensure default workspace
-  const workspaceManager = new WorkspaceManager(db)
-  const defaultWorkspace = workspaceManager.ensureDefault()
+    // 8. Register stub embedder and LLM
+    const stubEmbedder = createStubEmbedder()
+    const stubLLM = createStubLLM()
+    await registry.register(stubEmbedder, pluginCtx)
+    await registry.register(stubLLM, pluginCtx)
 
-  // 10. Create DocumentStore (with workspace ID from default workspace)
-  const store = new DocumentStore(db, vectorDb, defaultWorkspace.id)
-  await store.initialize(EMBEDDING_DIMENSIONS)
+    // 9. Create WorkspaceManager, ensure default workspace
+    const workspaceManager = new WorkspaceManager(db)
+    const defaultWorkspace = workspaceManager.ensureDefault()
 
-  // 11. Create IngestPipeline and RAGEngine
-  const pipeline = new IngestPipeline({
-    store,
-    registry,
-    eventBus,
-    middleware,
-    embeddingDimensions: EMBEDDING_DIMENSIONS,
-  })
+    // 10. Create DocumentStore (with workspace ID from default workspace)
+    const store = new DocumentStore(db, vectorDb, defaultWorkspace.id)
+    await store.initialize(EMBEDDING_DIMENSIONS)
 
-  const ragEngine = new RAGEngine({
-    store,
-    llm: stubLLM,
-    embedder: stubEmbedder,
-    eventBus,
-    defaultProfile: config.rag.profile,
-  })
+    // 11. Create IngestPipeline and RAGEngine
+    const pipeline = new IngestPipeline({
+      store,
+      registry,
+      eventBus,
+      middleware,
+      embeddingDimensions: EMBEDDING_DIMENSIONS,
+    })
 
-  // Shutdown function
-  const shutdown = async (): Promise<void> => {
-    await registry.teardownAll()
-    eventBus.removeAllListeners()
-    await vectorDb.close()
-    db.close()
-  }
+    // Capture for shutdown closure
+    const dbRef = db
+    const vectorDbRef = vectorDb
 
-  return {
-    config,
-    db,
-    vectorDb,
-    registry,
-    eventBus,
-    middleware,
-    workspaceManager,
-    store,
-    pipeline,
-    ragEngine,
-    shutdown,
+    const ragEngine = new RAGEngine({
+      store,
+      llm: stubLLM,
+      embedder: stubEmbedder,
+      eventBus,
+      defaultProfile: config.rag.profile,
+    })
+
+    // Shutdown function
+    const shutdown = async (): Promise<void> => {
+      await registry.teardownAll()
+      eventBus.removeAllListeners()
+      await vectorDbRef.close()
+      dbRef.close()
+    }
+
+    return {
+      config,
+      db,
+      vectorDb,
+      registry,
+      eventBus,
+      middleware,
+      workspaceManager,
+      store,
+      pipeline,
+      ragEngine,
+      shutdown,
+    }
+  } catch (err) {
+    // Cleanup partially initialized resources
+    if (vectorDb) await vectorDb.close().catch(() => {})
+    if (db) db.close()
+    throw err
   }
 }

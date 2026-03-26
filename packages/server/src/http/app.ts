@@ -11,5 +11,15 @@ export function createApp(ctx: AppContext) {
   app.route('/', healthRoutes(ctx))
   app.route('/', documentRoutes(ctx))
   app.route('/', chatRoutes(ctx))
+
+  app.onError((err, c) => {
+    console.error('Unhandled error:', err.message)
+    return c.json({ error: 'Internal server error', message: err.message }, 500)
+  })
+
+  app.notFound((c) => {
+    return c.json({ error: 'Not found' }, 404)
+  })
+
   return app
 }

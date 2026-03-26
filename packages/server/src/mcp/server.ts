@@ -271,12 +271,32 @@ export function createMCPServer(ctx: AppContext): Server {
           const plugins = ctx.registry.listAll()
           const docs = ctx.store.listDocuments()
           const workspaces = ctx.workspaceManager.list()
+
+          // Test SQLite connectivity
+          let sqliteHealthy = true
+          try {
+            ctx.db.get('SELECT 1')
+          } catch {
+            sqliteHealthy = false
+          }
+
+          // Flag stub models
+          const models = ctx.registry.getModels()
+          const stubNames = new Set(models.filter((m) => m.name.includes('stub')).map((m) => m.name))
+
           const health = {
-            status: 'ok',
+            status: sqliteHealthy ? 'ok' : 'degraded',
             components: {
+              sqlite: { healthy: sqliteHealthy },
               store: { healthy: true, documents: docs.length },
               workspaces: { healthy: true, count: workspaces.length },
-              plugins: plugins.map((p) => ({ name: p.name, type: p.type, version: p.version, healthy: true })),
+              plugins: plugins.map((p) => ({
+                name: p.name,
+                type: p.type,
+                version: p.version,
+                healthy: true,
+                configured: !stubNames.has(p.name),
+              })),
             },
           }
           return {

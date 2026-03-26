@@ -5,6 +5,7 @@ import { askCommand } from './commands/ask.js'
 import { indexCommand } from './commands/index-cmd.js'
 import { doctorCommand } from './commands/doctor.js'
 import { configCommand } from './commands/config-cmd.js'
+import { initCommand } from './commands/init.js'
 
 const program = new Command()
 program
@@ -17,5 +18,6 @@ program.addCommand(askCommand())
 program.addCommand(indexCommand())
 program.addCommand(doctorCommand())
 program.addCommand(configCommand())
+program.addCommand(initCommand())
 
 program.parse()

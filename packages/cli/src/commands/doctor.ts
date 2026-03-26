@@ -10,7 +10,15 @@ export function doctorCommand() {
       try {
         const ctx = await getContext()
         log.ok('Core           v0.1.0')
-        log.ok('SQLite         connected')
+
+        // Test SQLite
+        try {
+          ctx.db.get('SELECT 1')
+          log.ok('SQLite         connected')
+        } catch {
+          log.fail('SQLite         connection failed')
+        }
+
         log.ok('LanceDB        connected')
         const docs = ctx.store.listDocuments()
         log.ok(`Documents      ${docs.length} indexed`)
@@ -18,8 +26,15 @@ export function doctorCommand() {
         log.ok(`Workspaces     ${workspaces.length}`)
         log.blank()
         log.heading('Plugins')
+        // Flag stub models as not configured
+        const models = ctx.registry.getModels()
+        const modelNames = new Set(models.map((m) => m.name))
         for (const p of ctx.registry.listAll()) {
-          log.ok(`${p.name.padEnd(35)} v${p.version}`)
+          if (modelNames.has(p.name) && p.name.includes('stub')) {
+            log.wait(`${p.name.padEnd(35)} v${p.version} (not configured)`)
+          } else {
+            log.ok(`${p.name.padEnd(35)} v${p.version}`)
+          }
         }
       } catch (err) {
         log.fail(`Bootstrap failed: ${(err as Error).message}`)

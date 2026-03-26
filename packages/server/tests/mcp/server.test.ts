@@ -4,14 +4,25 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { bootstrap, type AppContext } from '../../src/bootstrap.js'
 import { createMCPServer } from '../../src/mcp/server.js'
+import { Server } from '@modelcontextprotocol/sdk/server/index.js'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
 
 describe('MCP Server', () => {
   let tempDir: string
   let ctx: AppContext | null = null
+  let mcpClient: Client | null = null
+  let mcpServer: Server | null = null
 
   afterEach(async () => {
+    if (mcpClient) {
+      await mcpClient.close().catch(() => {})
+      mcpClient = null
+    }
+    if (mcpServer) {
+      await mcpServer.close().catch(() => {})
+      mcpServer = null
+    }
     if (ctx) {
       await ctx.shutdown()
       ctx = null
@@ -32,7 +43,10 @@ describe('MCP Server', () => {
     await server.connect(serverTransport)
     await client.connect(clientTransport)
 
-    return { server, client }
+    mcpClient = client
+    mcpServer = server
+
+    return { server, client, clientTransport, serverTransport }
   }
 
   it('lists 6 available tools', async () => {

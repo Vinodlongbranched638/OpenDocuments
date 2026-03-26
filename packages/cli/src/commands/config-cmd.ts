@@ -5,7 +5,13 @@ export function configCommand() {
   return new Command('config')
     .description('View or modify configuration')
     .argument('[key]', 'Config key to view')
-    .action(async (key) => {
+    .argument('[value]', 'Config value to set')
+    .action(async (key, value) => {
+      if (value) {
+        // TODO: Implement config writing (modify opendocs.config.ts)
+        log.fail('Config writing is not yet implemented. Edit opendocs.config.ts directly.')
+        return
+      }
       const config = loadConfig(process.cwd())
       if (!key) {
         log.heading('Configuration')
