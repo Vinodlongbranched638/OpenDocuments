@@ -1,0 +1,55 @@
+import type { SearchResult } from '../ingest/document-store.js'
+import type { ModelPlugin } from '../plugin/interfaces.js'
+
+export interface GenerateInput {
+  query: string
+  context: SearchResult[]
+  intent: string
+  systemPrompt?: string
+}
+
+const INTENT_PROMPTS: Record<string, string> = {
+  code: 'You are a coding assistant. Provide clear code examples and explanations based on the documentation context. Use code blocks with appropriate language tags.',
+  concept: 'You are a documentation expert. Explain concepts clearly and concisely based on the provided context. Use analogies when helpful.',
+  config: 'You are a configuration specialist. Provide precise configuration instructions based on the documentation context. Include all required fields and explain each option.',
+  data: 'You are a data specialist. Provide accurate data-related answers based on the documentation context. Include schemas, types, and validation rules when relevant.',
+  search: 'You are a search assistant. Summarize the most relevant results from the documentation context. Highlight key matches and rank by relevance.',
+  compare: 'You are an analysis assistant. Compare and contrast the items mentioned in the query using the documentation context. Present differences in a structured format.',
+  general: 'You are a helpful documentation assistant. Answer questions accurately based on the provided context. If the context does not contain enough information, say so clearly.',
+}
+
+export function buildPrompt(input: GenerateInput): string {
+  const systemPrompt = input.systemPrompt || INTENT_PROMPTS[input.intent] || INTENT_PROMPTS.general
+
+  const contextBlock = input.context.length > 0
+    ? input.context.map((r, i) =>
+      `[Source ${i + 1}: ${r.sourcePath}]\n${r.content}`
+    ).join('\n\n')
+    : 'No relevant documentation found.'
+
+  return `${systemPrompt}
+
+## Context
+${contextBlock}
+
+## Question
+${input.query}
+
+## Instructions
+Answer based on the context above. If the context does not contain enough information to answer fully, acknowledge what is missing. Cite sources by their number when referencing specific information.`
+}
+
+export async function* generateAnswer(
+  model: ModelPlugin,
+  input: GenerateInput,
+): AsyncIterable<string> {
+  if (!model.generate) {
+    throw new Error('LLM model must support generate()')
+  }
+
+  const prompt = buildPrompt(input)
+
+  for await (const chunk of model.generate(prompt)) {
+    yield chunk
+  }
+}

@@ -1,0 +1,112 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { RAGEngine } from '../../src/rag/engine.js'
+import { DocumentStore } from '../../src/ingest/document-store.js'
+import { EventBus } from '../../src/events/bus.js'
+import { createSQLiteDB } from '../../src/storage/sqlite.js'
+import { createLanceDB } from '../../src/storage/lancedb.js'
+import { runMigrations } from '../../src/storage/migrations/runner.js'
+import type { DB } from '../../src/storage/db.js'
+import type { VectorDB } from '../../src/storage/vector-db.js'
+import type { ModelPlugin } from '../../src/plugin/interfaces.js'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { join } from 'node:path'
+import { tmpdir } from 'node:os'
+
+function createMockModels() {
+  const embedder: ModelPlugin = {
+    name: 'mock-embedder', type: 'model', version: '0.1.0', coreVersion: '^0.1.0',
+    capabilities: { embedding: true },
+    setup: async () => {},
+    async embed(texts: string[]) {
+      return {
+        dense: texts.map(t => {
+          const h = t.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
+          return [Math.sin(h), Math.cos(h), Math.sin(h * 2)]
+        }),
+      }
+    },
+  }
+
+  const llm: ModelPlugin = {
+    name: 'mock-llm', type: 'model', version: '0.1.0', coreVersion: '^0.1.0',
+    capabilities: { llm: true },
+    setup: async () => {},
+    async *generate(prompt: string) {
+      yield 'Based on the context, '
+      yield 'here is the answer.'
+    },
+  }
+
+  return { embedder, llm }
+}
+
+describe('RAGEngine', () => {
+  let db: DB
+  let vectorDb: VectorDB
+  let tempDir: string
+  let engine: RAGEngine
+
+  beforeEach(async () => {
+    db = createSQLiteDB(':memory:')
+    runMigrations(db)
+    tempDir = mkdtempSync(join(tmpdir(), 'opendocs-test-'))
+    vectorDb = await createLanceDB(tempDir)
+    db.run("INSERT INTO workspaces (id, name) VALUES ('ws-1', 'default')")
+
+    const store = new DocumentStore(db, vectorDb, 'ws-1')
+    await store.initialize(3)
+
+    const { embedder, llm } = createMockModels()
+
+    const doc = store.createDocument({
+      title: 'guide.md', sourceType: 'local', sourcePath: '/guide.md', fileType: '.md',
+    })
+    const embedResult = await embedder.embed!(['Redis configuration guide with examples', 'Python setup tutorial for beginners'])
+    await store.storeChunks(doc.id, [
+      { content: 'Redis configuration guide with examples', embedding: embedResult.dense[0], chunkType: 'semantic', position: 0, tokenCount: 5, headingHierarchy: ['# Redis'] },
+      { content: 'Python setup tutorial for beginners', embedding: embedResult.dense[1], chunkType: 'semantic', position: 1, tokenCount: 5, headingHierarchy: ['# Python'] },
+    ])
+
+    engine = new RAGEngine({
+      store, llm, embedder, eventBus: new EventBus(), defaultProfile: 'balanced',
+    })
+  })
+
+  afterEach(async () => {
+    db.close()
+    await vectorDb.close()
+    rmSync(tempDir, { recursive: true, force: true })
+  })
+
+  it('answers a question with RAG pipeline', async () => {
+    const result = await engine.query({ query: 'How to configure Redis?' })
+    expect(result.answer).toContain('Based on the context')
+    expect(result.route).toBe('rag')
+    expect(result.sources.length).toBeGreaterThan(0)
+    expect(result.confidence.level).toBeDefined()
+  })
+
+  it('handles greetings with direct response', async () => {
+    const result = await engine.query({ query: 'Hello!' })
+    expect(result.route).toBe('direct')
+    expect(result.answer).toContain('OpenDocs')
+    expect(result.sources).toHaveLength(0)
+  })
+
+  it('supports streaming mode', async () => {
+    const chunks: string[] = []
+    let sources: any = null
+    for await (const event of engine.queryStream({ query: 'Redis config' })) {
+      if (event.type === 'chunk') chunks.push(event.data as string)
+      if (event.type === 'sources') sources = event.data
+    }
+    expect(chunks.join('')).toContain('Based on the context')
+    expect(sources).toBeDefined()
+  })
+
+  it('respects profile settings', async () => {
+    const fast = await engine.query({ query: 'Redis config', profile: 'fast' })
+    expect(fast.profile).toBe('fast')
+    expect(fast.sources.length).toBeLessThanOrEqual(3)
+  })
+})

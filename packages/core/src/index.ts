@@ -36,6 +36,10 @@ export { getProfileConfig, type RAGProfileConfig } from './rag/profiles.js'
 export { calculateConfidence, type ConfidenceInput, type ConfidenceResult } from './rag/confidence.js'
 export { Retriever, type RetrieveOptions } from './rag/retriever.js'
 
+export { generateAnswer, buildPrompt, type GenerateInput } from './rag/generator.js'
+export { routeQuery, type QueryRoute } from './rag/router.js'
+export { RAGEngine, type QueryInput, type QueryResult, type RAGEngineOptions } from './rag/engine.js'
+
 export type {
   PluginType,
   PipelineStage,
