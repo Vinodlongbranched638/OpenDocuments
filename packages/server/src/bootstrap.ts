@@ -144,6 +144,21 @@ async function loadModelPlugin(
 
     await plugin.setup(modelPluginCtx)
 
+    // Probe the embedding capability with a test call to verify the plugin is
+    // actually functional (e.g. the remote model server is running with the
+    // required model installed). Fall back to stubs on any failure so that the
+    // server can still start and serve requests in degraded mode.
+    if (plugin.capabilities.embedding && plugin.embed) {
+      try {
+        await plugin.embed(['probe'])
+      } catch (probeErr) {
+        console.warn(
+          `Model plugin ${packageName} embed probe failed: ${(probeErr as Error).message}. Using stub models.`,
+        )
+        return createStubModels(embeddingDimensions)
+      }
+    }
+
     // If the plugin supports embedding use it; otherwise fall back to stub embedder
     const embedder = plugin.capabilities.embedding
       ? plugin
