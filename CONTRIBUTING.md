@@ -1,186 +1,208 @@
 # Contributing to OpenDocuments
 
-OpenDocuments에 기여해 주셔서 감사합니다! 이 문서는 프로젝트에 기여하기 위한 전체 가이드입니다.
+Thank you for your interest in contributing to OpenDocuments! This guide covers everything you need to know to get started.
 
 ---
 
 ## Table of Contents
 
-- [개발 환경 설정](#개발-환경-설정)
-- [프로젝트 구조 이해](#프로젝트-구조-이해)
-- [기여 워크플로우](#기여-워크플로우)
-- [코드 컨벤션](#코드-컨벤션)
-- [테스트 작성 가이드](#테스트-작성-가이드)
-- [플러그인 개발 가이드](#플러그인-개발-가이드)
-- [커밋 메시지 컨벤션](#커밋-메시지-컨벤션)
-- [PR 가이드](#pr-가이드)
-- [이슈 리포팅](#이슈-리포팅)
-- [릴리즈 프로세스](#릴리즈-프로세스)
+- [Development Setup](#development-setup)
+- [Project Structure](#project-structure)
+- [Contribution Workflow](#contribution-workflow)
+- [Code Conventions](#code-conventions)
+- [Writing Tests](#writing-tests)
+- [Plugin Development](#plugin-development)
+- [Commit Messages](#commit-messages)
+- [Pull Request Guide](#pull-request-guide)
+- [Reporting Issues](#reporting-issues)
+- [Release Process](#release-process)
 
 ---
 
-## 개발 환경 설정
+## Development Setup
 
-### 필수 요구사항
+### Prerequisites
 
-- **Node.js** 20 이상
-- **npm** 10 이상
+- **Node.js** 20 or later
+- **npm** 10 or later
 - **Git**
 
-### 셋업
+### Getting Started
 
 ```bash
-# 1. 레포지토리 클론
+# 1. Clone the repository
 git clone https://github.com/joungminsung/OpenDocuments.git
 cd OpenDocuments
 
-# 2. 의존성 설치 + 빌드 (one-command)
+# 2. Install dependencies and build everything (one command)
 npm run setup
 
-# 3. 테스트 실행 (51개 test suite)
+# 3. Run all tests (51 test suites, ~300 tests)
 npm run test
 
-# 4. 개발 모드 (watch)
+# 4. Start development mode (watch for changes)
 npm run dev
 ```
 
-### 주요 스크립트
+### Available Scripts
 
-| 명령어 | 설명 |
-|--------|------|
-| `npm run setup` | 의존성 설치 + 전체 빌드 |
-| `npm run build` | 전체 패키지 빌드 (Turborepo) |
-| `npm run test` | 전체 테스트 실행 |
-| `npm run dev` | 전체 패키지 watch 모드 |
-| `npx turbo build --filter=@opendocuments/core` | 특정 패키지만 빌드 |
-| `npx turbo test --filter=@opendocuments/core` | 특정 패키지만 테스트 |
+| Command | Description |
+|---------|-------------|
+| `npm run setup` | Install dependencies + build all packages |
+| `npm run build` | Build all packages via Turborepo |
+| `npm run test` | Run all test suites |
+| `npm run dev` | Watch mode for all packages |
+| `npx turbo build --filter=@opendocuments/core` | Build a specific package only |
+| `npx turbo test --filter=@opendocuments/core` | Test a specific package only |
 
-### Ollama 없이 개발하기
+### Developing Without Ollama
 
-모델 플러그인 (Ollama, OpenAI 등)이 설치되어 있지 않아도 개발할 수 있습니다. Bootstrap이 자동으로 **stub 모델**로 fallback하므로 인덱싱과 검색의 기본 흐름은 정상 동작합니다. Stub 모델은 제로 벡터 임베딩과 placeholder 텍스트를 반환합니다.
+You don't need Ollama or any LLM provider installed to develop. When no model provider is available, the bootstrap automatically falls back to **stub models** that return zero-vector embeddings and placeholder text. The core indexing and search flow still works.
+
+You'll see this message in the console -- it's expected and harmless:
 
 ```
 [!!] Model plugin @opendocuments/model-ollama embed probe failed. Using stub models.
 ```
 
-이 메시지는 정상입니다. 실제 LLM 응답이 필요한 기능을 개발할 때만 Ollama 설치가 필요합니다.
+You only need a real LLM when developing features that depend on actual model output (e.g., answer quality testing).
 
 ---
 
-## 프로젝트 구조 이해
+## Project Structure
 
 ```
 OpenDocuments/
-├── packages/                   # 코어 패키지 (5개)
-│   ├── core/                   # 비즈니스 로직 전체 (플러그인, RAG, 인제스트, 스토리지)
+├── packages/                       # Core packages (5)
+│   ├── core/                       # All business logic
 │   │   ├── src/
-│   │   │   ├── auth/           # API Key 관리, OAuth
-│   │   │   ├── config/         # Zod 스키마, 설정 로더 (jiti)
-│   │   │   ├── connector/      # ConnectorManager (커넥터 오케스트레이션)
-│   │   │   ├── conversation/   # 대화 히스토리 관리
-│   │   │   ├── document/       # 버전관리, 태그, 컬렉션, 청크 관계
-│   │   │   ├── events/         # 타입드 EventBus (18개 이벤트)
-│   │   │   ├── ingest/         # 파이프라인 (parse→chunk→embed→store), 청커, 문서 스토어
-│   │   │   ├── parsers/        # 빌트인 파서 (Markdown, PlainText, Structured, Archive)
-│   │   │   ├── plugin/         # 플러그인 레지스트리, 로더, 호환성 검사
-│   │   │   ├── rag/            # RAG 엔진, 리트리버, 제너레이터, 프로필, 캐시, 의도분류, 리랭킹, 할루시네이션가드
-│   │   │   ├── security/       # PII 마스킹, 감사 로그, 보안 알림
-│   │   │   ├── storage/        # DB 추상화 (SQLite), VectorDB 추상화 (LanceDB), 마이그레이션
-│   │   │   ├── telemetry/      # 텔레메트리 수집기
-│   │   │   ├── utils/          # 로거, 해시, fetchWithTimeout, 파일 탐색, 파일 워치
-│   │   │   └── workspace/      # 워크스페이스 CRUD
-│   │   └── tests/              # 31개 테스트 파일, 159개 테스트
+│   │   │   ├── auth/               # API key management, OAuth provider
+│   │   │   ├── config/             # Zod schema, config loader (jiti)
+│   │   │   ├── connector/          # ConnectorManager (orchestrates external sources)
+│   │   │   ├── conversation/       # Chat history persistence
+│   │   │   ├── document/           # Versioning, tags, collections, chunk relations
+│   │   │   ├── events/             # Typed EventBus (18 event types)
+│   │   │   ├── ingest/             # Pipeline (parse → chunk → embed → store), chunker, document store
+│   │   │   ├── parsers/            # Built-in parsers (Markdown, PlainText, Structured, Archive)
+│   │   │   ├── plugin/             # Plugin registry, loader, compatibility checker
+│   │   │   ├── rag/                # RAG engine, retriever, generator, profiles, cache,
+│   │   │   │                       # intent classifier, reranker, hallucination guard,
+│   │   │   │                       # query decomposer, cross-lingual, context window
+│   │   │   ├── security/           # PII redaction, audit logger, security alerts
+│   │   │   ├── storage/            # DB abstraction (SQLite), VectorDB (LanceDB), migrations
+│   │   │   ├── telemetry/          # Opt-in usage telemetry
+│   │   │   ├── utils/              # Logger, hash, fetchWithTimeout, file discovery, file watcher
+│   │   │   └── workspace/          # Workspace CRUD
+│   │   └── tests/                  # 31 test files, 159 tests
 │   │
-│   ├── server/                 # HTTP 서버 (Hono), MCP 서버, 인증 미들웨어
+│   ├── server/                     # HTTP server (Hono), MCP server, auth middleware
 │   │   ├── src/
-│   │   │   ├── bootstrap.ts    # 전체 컴포넌트 초기화 오케스트레이터
+│   │   │   ├── bootstrap.ts        # Wires all core components together
 │   │   │   ├── http/
-│   │   │   │   ├── app.ts      # Hono 앱 (CORS, auth, rate limit, static serving)
-│   │   │   │   ├── middleware/  # auth.ts (API Key/OAuth), rate-limit.ts
-│   │   │   │   └── routes/     # 9개 라우트 파일 (35개 엔드포인트)
-│   │   │   ├── mcp/            # MCP 서버 (19개 도구, 2개 리소스)
-│   │   │   └── widget/         # 임베더블 채팅 위젯
-│   │   └── tests/              # 7개 테스트 파일, 27개 테스트
+│   │   │   │   ├── app.ts          # Hono app (CORS, auth, rate limit, static serving)
+│   │   │   │   ├── middleware/      # auth.ts, rate-limit.ts
+│   │   │   │   └── routes/         # 9 route files (35+ endpoints)
+│   │   │   ├── mcp/                # MCP server (19 tools, 2 resources)
+│   │   │   └── widget/             # Embeddable chat widget (postMessage auth)
+│   │   └── tests/                  # 7 test files, 27 tests
 │   │
-│   ├── cli/                    # CLI 바이너리 (Commander.js)
-│   │   └── src/commands/       # 17개 커맨드 파일
+│   ├── cli/                        # CLI binary (Commander.js)
+│   │   └── src/commands/           # 17 command files
 │   │
-│   ├── web/                    # React SPA (Vite + Tailwind)
+│   ├── web/                        # React SPA (Vite + Tailwind CSS)
 │   │   └── src/
-│   │       ├── components/     # 7개 페이지 (Chat, Documents, Connectors, Plugins, Workspaces, Settings, Admin)
-│   │       ├── stores/         # Zustand (appStore, chatStore)
-│   │       └── lib/            # API 클라이언트, SSE 헬퍼, i18n, 타입
+│   │       ├── components/         # 7 pages + CommandPalette + layout
+│   │       ├── stores/             # Zustand (appStore, chatStore)
+│   │       └── lib/                # API client, SSE helper, i18n, types
 │   │
-│   └── client/                 # TypeScript SDK (@opendocuments/client)
+│   └── client/                     # TypeScript SDK (@opendocuments/client)
 │
-├── plugins/                    # 플러그인 (21개)
-│   ├── model-*/                # LLM 프로바이더 (5): Ollama, OpenAI, Anthropic, Google, Grok
-│   ├── parser-*/               # 파서 (9): PDF, DOCX, XLSX, HTML, Jupyter, Email, Code, PPTX, Structured
-│   └── connector-*/            # 커넥터 (8): GitHub, Notion, GDrive, S3, Confluence, Swagger, WebCrawler, WebSearch
+├── plugins/                        # Plugins (21 total)
+│   ├── model-ollama/               # Ollama (local LLM + embedding)
+│   ├── model-openai/               # OpenAI (GPT-5.4, text-embedding-3)
+│   ├── model-anthropic/            # Anthropic (Claude Opus/Sonnet 4.6, no embedding)
+│   ├── model-google/               # Google (Gemini 3.1, text-embedding-005)
+│   ├── model-grok/                 # xAI (Grok 4, OpenAI-compatible API)
+│   ├── parser-pdf/                 # PDF (pdf-parse)
+│   ├── parser-docx/                # Word (mammoth HTML conversion)
+│   ├── parser-xlsx/                # Excel/CSV (SheetJS)
+│   ├── parser-html/                # HTML (cheerio)
+│   ├── parser-jupyter/             # Jupyter Notebook (JSON parse)
+│   ├── parser-email/               # Email .eml (RFC 2822 parser)
+│   ├── parser-code/                # Source code (regex-based function/class extraction)
+│   ├── parser-pptx/                # PowerPoint (XML text extraction)
+│   ├── connector-github/           # GitHub (REST API, tree listing, base64 decode)
+│   ├── connector-notion/           # Notion (Search API, block-to-text conversion)
+│   ├── connector-gdrive/           # Google Drive (Drive API v3)
+│   ├── connector-s3/               # S3/GCS (XML/JSON list + download)
+│   ├── connector-confluence/       # Confluence (REST API, HTML-to-text)
+│   ├── connector-swagger/          # Swagger/OpenAPI (spec parsing, endpoint chunking)
+│   ├── connector-web-crawler/      # Web crawler (cheerio text extraction)
+│   └── connector-web-search/       # Tavily web search (query-time, not index-time)
 │
-├── docs-site/                  # VitePress 문서 사이트
-├── templates/                  # 플러그인 스캐폴딩 템플릿
-├── benchmarks/                 # RAG 품질 벤치마크 (미구현)
-├── Dockerfile                  # 프로덕션 Docker 이미지
-└── docker-compose.yml          # Docker Compose (+ 선택적 Ollama)
+├── docs-site/                      # VitePress documentation site
+├── templates/                      # Plugin scaffolding templates
+├── benchmarks/                     # RAG quality benchmarks (datasets + results)
+├── Dockerfile                      # Multi-stage production image
+└── docker-compose.yml              # Docker Compose with optional Ollama
 ```
 
-### 핵심 원칙
+### Key Architectural Principles
 
-1. **`@opendocuments/core`에 비즈니스 로직 집중** -- server는 프로토콜 변환만 담당
-2. **모든 확장은 플러그인으로** -- 파서, 커넥터, 모델, 미들웨어 모두 동일한 플러그인 인터페이스
-3. **Config as Code** -- `opendocuments.config.ts`가 single source of truth
-4. **이벤트 기반 디커플링** -- 컴포넌트 간 직접 호출 대신 EventBus 사용
-5. **Storage 추상화** -- SQLite/LanceDB는 인터페이스 뒤에 숨김, 설정만 바꾸면 전환 가능
+1. **All business logic lives in `@opendocuments/core`** -- the server package is only a thin protocol translation layer (HTTP/MCP/WebSocket)
+2. **Everything is a plugin** -- parsers, connectors, models, and middleware all share the same plugin interface with lifecycle hooks
+3. **Config as Code** -- `opendocuments.config.ts` is the single source of truth, loaded at runtime via jiti
+4. **Event-driven decoupling** -- components communicate through a typed EventBus (18 event types) instead of direct calls
+5. **Storage abstraction** -- SQLite and LanceDB sit behind interfaces; switching to PostgreSQL/Qdrant requires only config changes
 
 ---
 
-## 기여 워크플로우
+## Contribution Workflow
 
-### 1. 이슈 확인 또는 생성
+### 1. Find or Create an Issue
 
-- 기존 이슈를 확인하거나 새 이슈를 생성합니다
-- `good first issue` 라벨이 붙은 이슈는 처음 기여하기 좋습니다
-- 큰 변경은 먼저 이슈에서 논의해 주세요
+- Check existing [issues](https://github.com/joungminsung/OpenDocuments/issues)
+- Look for `good first issue` labels if you're new
+- For larger changes, open an issue first to discuss the approach
 
-### 2. 브랜치 생성
+### 2. Create a Branch
 
 ```bash
 git checkout main
 git pull origin main
-git checkout -b feat/my-feature    # 기능
-git checkout -b fix/my-bugfix      # 버그 수정
-git checkout -b docs/my-docs       # 문서
+git checkout -b feat/my-feature     # New feature
+git checkout -b fix/my-bugfix       # Bug fix
+git checkout -b docs/my-docs        # Documentation
 ```
 
-### 3. 개발
+### 3. Develop
 
 ```bash
-# 변경한 패키지만 빌드/테스트
+# Build and test only the packages you changed
 npx turbo build --filter=@opendocuments/core
 npx turbo test --filter=@opendocuments/core
 
-# 또는 전체
+# Or build and test everything
 npm run build
 npm run test
 ```
 
-### 4. Changeset 생성
+### 4. Create a Changeset
 
-버전에 영향을 주는 변경은 changeset을 생성해야 합니다:
+For any change that affects package versions:
 
 ```bash
 npx changeset
 ```
 
-프롬프트에서:
-- 변경된 패키지 선택 (스페이스바로 토글)
-- 변경 유형 선택: `patch` (버그 수정) / `minor` (기능 추가) / `major` (브레이킹 변경)
-- 변경 설명 작성
+You'll be prompted to:
+1. Select affected packages (spacebar to toggle)
+2. Choose version bump type: `patch` (bugfix) / `minor` (feature) / `major` (breaking)
+3. Write a summary of the change
 
-이렇게 하면 `.changeset/` 디렉토리에 마크다운 파일이 생성됩니다. **이 파일도 커밋에 포함하세요.**
+This creates a markdown file in `.changeset/`. **Include this file in your commit.**
 
-### 5. PR 제출
+### 5. Submit a PR
 
 ```bash
 git add -A
@@ -188,108 +210,111 @@ git commit -m "feat(core): add my feature"
 git push origin feat/my-feature
 ```
 
-GitHub에서 Pull Request를 생성합니다. PR 템플릿을 따라 작성해 주세요.
+Open a Pull Request on GitHub. Fill in the PR template.
 
-### 6. CI 확인
+### 6. Wait for CI
 
-PR을 올리면 GitHub Actions가 자동으로 실행됩니다:
-- `npm ci` (의존성 설치)
-- `npx turbo build` (전체 빌드)
-- `npx turbo typecheck` (타입 체크)
-- `npx turbo test` (전체 테스트)
+GitHub Actions automatically runs on every PR:
+- `npm ci` (clean install)
+- `npx turbo build` (full build)
+- `npx turbo typecheck` (TypeScript strict check)
+- `npx turbo test` (all tests)
 
-Node.js 20과 22 두 버전에서 실행됩니다. **CI가 통과해야 머지 가능합니다.**
+Tested on Node.js 20 and 22. **CI must pass before merge.**
 
 ---
 
-## 코드 컨벤션
+## Code Conventions
 
 ### TypeScript
 
-- **strict 모드** 필수 (`tsconfig.base.json`에 `"strict": true`)
-- **ESM 모듈** (`"type": "module"` in package.json)
-- import 경로에 `.js` 확장자 필수 (ESM 요구사항)
+- **Strict mode** is mandatory (`"strict": true` in `tsconfig.base.json`)
+- **ESM modules** (`"type": "module"` in every package.json)
+- **`.js` extension required** in import paths (ESM requirement):
   ```typescript
-  // Good
+  // Correct
   import { sha256 } from './utils/hash.js'
 
-  // Bad
+  // Wrong
   import { sha256 } from './utils/hash'
   ```
-- `any` 타입 최소화 -- `unknown` 또는 적절한 타입 사용
+- **Minimize `any`** -- use `unknown` or proper types. `any` is acceptable in Web UI components but not in core or server logic.
   ```typescript
-  // Good
+  // Correct
   const data = await res.json() as { items: string[] }
 
-  // Bad
+  // Avoid
   const data = await res.json() as any
   ```
-- 공개 API에는 JSDoc 작성
+- Write **JSDoc** for all public APIs
 
-### 네이밍
+### Naming
 
-| 대상 | 컨벤션 | 예시 |
-|------|--------|------|
-| 파일 | kebab-case | `document-store.ts` |
-| 클래스 | PascalCase | `DocumentStore` |
-| 함수/변수 | camelCase | `getDocumentBySourcePath` |
-| 인터페이스/타입 | PascalCase | `PluginContext` |
-| 상수 | UPPER_SNAKE_CASE | `MAX_ALERTS` |
-| DB 컬럼 | snake_case | `workspace_id` |
-| 환경 변수 | UPPER_SNAKE_CASE | `OPENDOCUMENTS_DATA_DIR` |
+| What | Convention | Example |
+|------|-----------|---------|
+| Files | kebab-case | `document-store.ts` |
+| Classes | PascalCase | `DocumentStore` |
+| Functions / variables | camelCase | `getDocumentBySourcePath` |
+| Interfaces / types | PascalCase | `PluginContext` |
+| Constants | UPPER_SNAKE_CASE | `MAX_ALERTS` |
+| Database columns | snake_case | `workspace_id` |
+| Environment variables | UPPER_SNAKE_CASE | `OPENDOCUMENTS_DATA_DIR` |
+| CLI commands | kebab-case | `opendocuments auth create-key` |
 
-### CLI 출력
+### CLI Output
 
-- **이모지 금지** -- ANSI 심볼만 사용
-- `@opendocuments/core`의 `log` 유틸리티 사용:
+- **No emojis** -- use ANSI-colored symbols from the `log` utility:
   ```typescript
   import { log } from '@opendocuments/core'
 
-  log.ok('Operation succeeded')       // [ok] 초록색
-  log.fail('Operation failed')        // [!!] 빨간색
-  log.info('Information')             // [--] 파란색
-  log.arrow('Next step')              // [->] 시안색
-  log.wait('Processing...')           // [..] 노란색
-  log.heading('Section Title')        // 볼드 흰색 + 구분선
-  log.dim('Secondary info')           // 회색
+  log.ok('Success')           // [ok]  green
+  log.fail('Error')           // [!!]  red
+  log.info('Info')            // [--]  blue
+  log.arrow('Next step')      // [->]  cyan
+  log.wait('Processing...')   // [..]  yellow
+  log.heading('Title')        // bold white + divider
+  log.dim('Secondary')        // gray
   ```
+- This ensures consistent output across all terminals and operating systems
 
-### 에러 처리
+### Error Handling
 
-- **핵심 경로에서 에러 삼키지 않기** -- 최소한 로깅
-- **사용자 대면 에러는 actionable하게** -- "무엇이 잘못됐고 어떻게 해결하는지"
-- **프로덕션에서 내부 정보 노출 금지**:
+- **Never silently swallow errors** in critical paths -- at minimum, log them
+- **User-facing errors must be actionable** -- explain what went wrong and how to fix it
+- **Never leak internal details in production**:
   ```typescript
-  // Good
+  // Correct
   return c.json({ error: 'Document not found' }, 404)
 
-  // Bad (내부 정보 노출)
+  // Wrong (leaks internal state)
   return c.json({ error: err.stack }, 500)
   ```
 
-### 보안
+### Security Checklist
 
-- **API 키를 코드에 하드코딩 금지** -- 환경 변수 사용
-- **SQL 쿼리는 파라미터화** -- `?` placeholder 사용
-- **LanceDB 필터는 `buildWhereClause()` 사용** -- raw string 금지
-- **FTS5 쿼리는 `escapeFTS5Query()` 사용** -- 사용자 입력 직접 전달 금지
-- **새 엔드포인트는 인증 필요 여부 확인** -- 팀 모드에서 보호되는지
+When writing new code, verify:
+- [ ] No API keys or secrets hardcoded -- use environment variables
+- [ ] SQL queries use parameterized statements (`?` placeholders)
+- [ ] LanceDB filters use `buildWhereClause()` -- never interpolate raw strings
+- [ ] FTS5 queries use `escapeFTS5Query()` -- never pass raw user input
+- [ ] New HTTP endpoints are protected by auth middleware in team mode
+- [ ] Error responses don't include stack traces or internal paths
 
 ---
 
-## 테스트 작성 가이드
+## Writing Tests
 
-### 테스트 프레임워크
+### Framework
 
-- **Vitest** 사용 (Jest 호환 API)
-- 테스트 파일 위치: `tests/` 디렉토리 (각 패키지 내)
-- 파일 네이밍: `*.test.ts`
-- globals 활성화 (`describe`, `it`, `expect`, `vi` 별도 import 불필요)
+- **Vitest** (Jest-compatible API)
+- Test files go in `tests/` within each package
+- File naming: `*.test.ts`
+- Globals are enabled -- `describe`, `it`, `expect`, `vi` are available without import
 
-### 테스트 구조
+### Test Structure
 
 ```typescript
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 
 describe('MyModule', () => {
   let db: DB
@@ -316,51 +341,56 @@ describe('MyModule', () => {
 })
 ```
 
-### 테스트 원칙
+### Testing Principles
 
-1. **실제 SQLite 사용** -- `:memory:` 모드로 인메모리 DB 생성
-2. **실제 LanceDB 사용** -- 임시 디렉토리 생성, afterEach에서 정리
-3. **외부 API는 mock** -- `vi.stubGlobal('fetch', vi.fn())` 사용
-4. **각 테스트 독립적** -- 공유 상태 금지, beforeEach에서 초기화
-5. **happy path + error path** 모두 테스트
-6. **리소스 정리 필수** -- DB close, temp dir 삭제
+1. **Use real SQLite** -- create an in-memory database with `:memory:`
+2. **Use real LanceDB** -- create a temp directory, clean up in `afterEach`
+3. **Mock external APIs** -- use `vi.stubGlobal('fetch', ...)` for HTTP calls
+4. **Each test must be independent** -- no shared state between tests, initialize everything in `beforeEach`
+5. **Test both happy path and error path**
+6. **Always clean up resources** -- close databases, delete temp directories
 
-### LanceDB 테스트 패턴
+### Common Test Patterns
+
+#### SQLite + LanceDB Integration Test
 
 ```typescript
 import { mkdtempSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 
-let tempDir: string
+let db: DB
 let vectorDb: VectorDB
+let tempDir: string
 
 beforeEach(async () => {
+  db = createSQLiteDB(':memory:')
+  runMigrations(db)
   tempDir = mkdtempSync(join(tmpdir(), 'opendocuments-test-'))
   vectorDb = await createLanceDB(tempDir)
-  await vectorDb.ensureCollection('test', 3)
 })
 
 afterEach(async () => {
+  db.close()
   await vectorDb.close()
   rmSync(tempDir, { recursive: true, force: true })
 })
 ```
 
-### 외부 API Mock 패턴
+#### Mocking `fetch` (for model/connector plugins)
 
 ```typescript
-// Mock fetch globally
 vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
   ok: true,
   json: async () => ({ data: 'test' }),
 }))
 
-// Clean up after test
+// ... run your test ...
+
 afterEach(() => vi.unstubAllGlobals())
 ```
 
-### fetchWithTimeout Mock 패턴 (플러그인)
+#### Mocking `fetchWithTimeout` from core (for plugins that import it)
 
 ```typescript
 vi.mock('@opendocuments/core', async () => {
@@ -376,9 +406,9 @@ import { fetchWithTimeout } from '@opendocuments/core'
 
 ---
 
-## 플러그인 개발 가이드
+## Plugin Development
 
-### 플러그인 생성
+### Scaffolding a Plugin
 
 ```bash
 opendocuments plugin create my-parser --type parser
@@ -386,255 +416,271 @@ cd my-parser
 npm install
 ```
 
-생성되는 파일:
+Generated structure:
 ```
 my-parser/
 ├── package.json          # peerDependency: @opendocuments/core ^0.1.0
 ├── tsconfig.json
 ├── vitest.config.ts
 ├── src/
-│   └── index.ts          # 플러그인 구현 (타입별 보일러플레이트)
+│   └── index.ts          # Plugin implementation (type-specific boilerplate)
 ├── tests/
-│   └── index.test.ts     # 기본 테스트 (메타데이터, healthCheck)
+│   └── index.test.ts     # Basic tests (metadata, healthCheck)
 └── README.md
 ```
 
-### 플러그인 타입별 인터페이스
+### Plugin Types
 
-#### Parser (파서)
+#### Parser
+
+Converts a file format into text chunks.
 
 ```typescript
 interface ParserPlugin extends OpenDocsPlugin {
   type: 'parser'
-  supportedTypes: string[]     // ['.pdf', '.docx']
+  supportedTypes: string[]          // File extensions: ['.pdf', '.docx']
   multimodal?: boolean
   parse(raw: RawDocument): AsyncIterable<ParsedChunk>
 }
 ```
 
-`parse`는 **AsyncIterable**을 반환해야 합니다 (`async function*` 사용).
+The `parse` method must be an **async generator** (`async function*`). Yield one `ParsedChunk` per logical section. Set `chunkType` to `'semantic'` for text, `'code-ast'` for code, `'table'` for tabular data, or `'slide'` for presentations.
 
-#### Connector (커넥터)
+#### Connector
+
+Fetches documents from an external source.
 
 ```typescript
 interface ConnectorPlugin extends OpenDocsPlugin {
   type: 'connector'
-  discover(): AsyncIterable<DiscoveredDocument>
-  fetch(docRef: DocumentRef): Promise<RawDocument>
-  watch?(onChange: (event: ChangeEvent) => void): Promise<Disposable>
-  auth?(): Promise<AuthResult>
+  discover(): AsyncIterable<DiscoveredDocument>    // List available documents
+  fetch(ref: DocumentRef): Promise<RawDocument>    // Download document content
+  watch?(onChange: (event: ChangeEvent) => void): Promise<Disposable>  // Real-time sync
+  auth?(): Promise<AuthResult>                      // Authentication flow
 }
 ```
 
-#### Model (모델 프로바이더)
+`discover()` yields documents one at a time. Include `contentHash` in the result to enable change detection (skip re-indexing unchanged docs).
+
+#### Model
+
+Provides LLM, embedding, or reranking capabilities.
 
 ```typescript
 interface ModelPlugin extends OpenDocsPlugin {
   type: 'model'
   capabilities: { llm?: boolean; embedding?: boolean; reranker?: boolean; vision?: boolean }
-  generate?(prompt: string, opts?: GenerateOpts): AsyncIterable<string>
-  embed?(texts: string[]): Promise<EmbeddingResult>
-  rerank?(query: string, docs: string[]): Promise<RerankResult>
-  describeImage?(image: Buffer): Promise<string>
+  generate?(prompt: string, opts?: GenerateOpts): AsyncIterable<string>  // Streaming LLM
+  embed?(texts: string[]): Promise<EmbeddingResult>                      // Batch embedding
+  rerank?(query: string, docs: string[]): Promise<RerankResult>          // Re-scoring
+  describeImage?(image: Buffer): Promise<string>                         // Vision
 }
 ```
 
-#### Middleware (미들웨어)
+The `generate` method must stream tokens via `async function*`. The `embed` method receives a batch of texts and returns dense vectors (and optionally sparse vectors).
+
+#### Middleware
+
+Hooks into pipeline stages to transform data in-flight.
 
 ```typescript
 interface MiddlewarePlugin extends OpenDocsPlugin {
   type: 'middleware'
   hooks: {
-    stage: PipelineStage    // 'before:parse' | 'after:chunk' | etc.
+    stage: PipelineStage     // 'before:parse' | 'after:chunk' | 'before:retrieve' | etc.
     handler: (data: unknown) => Promise<unknown>
   }[]
 }
 ```
 
-### 플러그인 공통 필수 필드
+Available stages: `before:discover`, `after:discover`, `before:fetch`, `after:fetch`, `before:parse`, `after:parse`, `before:chunk`, `after:chunk`, `before:retrieve`, `after:retrieve`, `before:rerank`, `after:rerank`, `before:generate`, `after:generate`, `before:query`, `after:query`.
+
+### Required Plugin Fields
+
+Every plugin must declare:
 
 ```typescript
 {
-  name: string              // '@opendocuments/parser-pdf' 또는 'opendocuments-plugin-my-plugin'
+  name: string              // e.g., '@opendocuments/parser-pdf'
   type: PluginType          // 'parser' | 'connector' | 'model' | 'middleware'
-  version: string           // semver
-  coreVersion: string       // '^0.1.0' (호환 core 버전)
+  version: string           // Semver (e.g., '0.1.0')
+  coreVersion: string       // Compatible core version (e.g., '^0.1.0')
 
-  setup(ctx: PluginContext): Promise<void>       // 초기화 (필수)
-  teardown?(): Promise<void>                     // 정리 (선택)
-  healthCheck?(): Promise<HealthStatus>          // 상태 진단 (권장)
-  metrics?(): Promise<PluginMetrics>             // 메트릭 (선택)
+  setup(ctx: PluginContext): Promise<void>        // Initialization (required)
+  teardown?(): Promise<void>                      // Cleanup (optional)
+  healthCheck?(): Promise<HealthStatus>           // Diagnostics (recommended)
+  metrics?(): Promise<PluginMetrics>              // Metrics for admin dashboard (optional)
 }
 ```
 
-### 네이밍 규칙
+### Naming Conventions
 
-| 유형 | 공식 플러그인 | 커뮤니티 플러그인 |
-|------|-------------|-----------------|
-| 파서 | `@opendocuments/parser-<format>` | `opendocuments-plugin-parser-<format>` |
-| 커넥터 | `@opendocuments/connector-<service>` | `opendocuments-plugin-connector-<service>` |
-| 모델 | `@opendocuments/model-<provider>` | `opendocuments-plugin-model-<provider>` |
-| 미들웨어 | `@opendocuments/middleware-<name>` | `opendocuments-plugin-middleware-<name>` |
+| Type | Official Plugin | Community Plugin |
+|------|----------------|-----------------|
+| Parser | `@opendocuments/parser-<format>` | `opendocuments-plugin-parser-<format>` |
+| Connector | `@opendocuments/connector-<service>` | `opendocuments-plugin-connector-<service>` |
+| Model | `@opendocuments/model-<provider>` | `opendocuments-plugin-model-<provider>` |
+| Middleware | `@opendocuments/middleware-<name>` | `opendocuments-plugin-middleware-<name>` |
 
-### 개발 → 테스트 → 배포
+### Development Workflow
 
 ```bash
-# 개발 (watch 모드)
-opendocuments plugin dev
-
-# 테스트
-opendocuments plugin test
-
-# npm에 배포
-opendocuments plugin publish
+opendocuments plugin dev       # Watch mode (tsc --watch)
+opendocuments plugin test      # Run vitest
+opendocuments plugin publish   # Publish to npm (npm publish --access public)
 ```
 
-### HTTP 요청 시 주의사항
+### HTTP Requests in Plugins
 
-- **`fetchWithTimeout`을 `@opendocuments/core`에서 import해서 사용** -- 직접 `fetch` 호출 금지
-- 타임아웃: healthCheck 10초, embed 30초, generate(streaming) 120초
-- 에러 메시지에 API 키나 URL 크레덴셜 포함 금지
+Always use `fetchWithTimeout` from `@opendocuments/core` instead of raw `fetch`:
 
 ```typescript
 import { fetchWithTimeout } from '@opendocuments/core'
 
+// Use appropriate timeouts:
+// - healthCheck: 10 seconds
+// - embed: 30 seconds
+// - generate (streaming): 120 seconds
 const res = await fetchWithTimeout('https://api.example.com/v1/data', {
   headers: { 'Authorization': `Bearer ${this.apiKey}` },
-}, 30000)  // 30초 타임아웃
+}, 30000)
 ```
+
+Never include API keys or credentials in error messages.
 
 ---
 
-## 커밋 메시지 컨벤션
+## Commit Messages
 
-[Conventional Commits](https://www.conventionalcommits.org/) 형식을 따릅니다:
+We follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
 
 ```
 <type>(<scope>): <description>
 ```
 
-### Type
+### Types
 
-| Type | 설명 | 예시 |
-|------|------|------|
-| `feat` | 새 기능 | `feat(core): add intent classification` |
-| `fix` | 버그 수정 | `fix(server): handle invalid JSON in chat endpoint` |
-| `docs` | 문서 변경 | `docs: update README with MCP tools` |
-| `test` | 테스트 추가/수정 | `test(core): add retriever hybrid search test` |
-| `refactor` | 기능 변경 없는 코드 개선 | `refactor: rename OpenDocs to OpenDocuments` |
-| `chore` | 빌드/도구/설정 | `chore: update turbo.json pipeline` |
-| `ci` | CI/CD | `ci: add Node 22 to test matrix` |
+| Type | When to Use | Example |
+|------|------------|---------|
+| `feat` | New feature | `feat(core): add intent classification` |
+| `fix` | Bug fix | `fix(server): escape FTS5 query input` |
+| `docs` | Documentation only | `docs: update README with use cases` |
+| `test` | Adding or fixing tests | `test(core): add retriever hybrid search test` |
+| `refactor` | Code change that doesn't fix a bug or add a feature | `refactor: rename OpenDocs to OpenDocuments` |
+| `chore` | Build, tooling, or config changes | `chore: update turbo.json pipeline` |
+| `ci` | CI/CD changes | `ci: add Node 22 to test matrix` |
 
-### Scope
+### Scopes
 
-| Scope | 패키지 |
-|-------|--------|
+| Scope | Package |
+|-------|---------|
 | `core` | `@opendocuments/core` |
 | `server` | `@opendocuments/server` |
 | `cli` | `@opendocuments/cli` |
 | `web` | `@opendocuments/web` |
 | `client` | `@opendocuments/client` |
-| (없음) | 여러 패키지 또는 루트 |
+| _(none)_ | Multiple packages or root |
 
-### 예시
+### Examples
 
 ```
 feat(core): add FTS5 sparse search with RRF merge
-fix(server): escape FTS5 query to prevent operator injection
+fix(server): use HttpOnly cookie for OAuth instead of URL params
 docs: add plugin development guide to CONTRIBUTING.md
 test(core): add hallucination guard grounding tests
 refactor(cli): extract file discovery to shared utility
-chore: add CHANGELOG.md
-ci: fix CI build with variable-based dynamic import
 feat: add Google Drive and S3 connector plugins
 ```
 
 ---
 
-## PR 가이드
+## Pull Request Guide
 
-### PR 체크리스트
+### PR Checklist
 
-PR 생성 시 다음을 확인해 주세요:
+Before submitting, verify:
 
-- [ ] 코드가 프로젝트 컨벤션을 따르는가
-- [ ] 새 기능에 대한 테스트를 추가했는가
-- [ ] 기존 테스트가 모두 통과하는가 (`npm run test`)
-- [ ] 빌드가 성공하는가 (`npm run build`)
-- [ ] TypeScript 타입 체크가 통과하는가 (`npx turbo typecheck`)
-- [ ] Changeset을 생성했는가 (`npx changeset`)
-- [ ] CLI 출력에 이모지를 사용하지 않았는가
-- [ ] 새 엔드포인트에 적절한 인증이 적용되었는가
+- [ ] Code follows the project's [conventions](#code-conventions)
+- [ ] New features have tests
+- [ ] All existing tests pass (`npm run test`)
+- [ ] Build succeeds (`npm run build`)
+- [ ] TypeScript type check passes (`npx turbo typecheck`)
+- [ ] A changeset was created if the change affects published packages (`npx changeset`)
+- [ ] CLI output uses ANSI symbols, not emojis
+- [ ] New HTTP endpoints have appropriate auth protection
+- [ ] No secrets or API keys in the code
 
-### PR 크기
+### PR Size
 
-- **작을수록 좋습니다** -- 하나의 PR에 하나의 논리적 변경
-- 대규모 리팩토링은 여러 PR로 분리
-- 새 플러그인은 하나의 PR로 제출 가능
+- **Smaller is better** -- one logical change per PR
+- Large refactors should be split into multiple PRs
+- New plugins can be a single PR
 
-### 리뷰 프로세스
+### Review Process
 
-1. CI가 통과해야 리뷰가 시작됩니다
-2. 최소 1명의 maintainer 승인이 필요합니다
-3. 리뷰 코멘트에 대응 후 re-request review
-4. 승인 후 squash merge
+1. CI must pass before review begins
+2. At least one maintainer approval is required
+3. Address review comments, then re-request review
+4. After approval, the PR is squash-merged into `main`
 
 ---
 
-## 이슈 리포팅
+## Reporting Issues
 
-### 버그 리포트
+### Bug Reports
 
-이슈 템플릿 (`Bug Report`)을 사용하여:
+Use the [Bug Report](https://github.com/joungminsung/OpenDocuments/issues/new?template=bug_report.yml) template:
 
-1. **설명** -- 무엇이 잘못되었는지
-2. **재현 단계** -- 1, 2, 3 순서로
-3. **예상 동작** -- 어떻게 동작해야 하는지
-4. **실제 동작** -- 실제로 어떻게 동작하는지
-5. **환경** -- OS, Node 버전, OpenDocuments 버전
+1. **Description** -- What happened?
+2. **Steps to reproduce** -- Numbered steps
+3. **Expected behavior** -- What should have happened?
+4. **Actual behavior** -- What actually happened?
+5. **Environment** -- OS, Node version, OpenDocuments version
 
+Collecting environment info:
 ```bash
-# 환경 정보 수집
 opendocuments doctor
 node --version
 npm --version
 ```
 
-### 기능 요청
+### Feature Requests
 
-이슈 템플릿 (`Feature Request`)을 사용하여:
+Use the [Feature Request](https://github.com/joungminsung/OpenDocuments/issues/new?template=feature_request.yml) template:
 
-1. **설명** -- 어떤 기능인지
-2. **사용 사례** -- 왜 필요한지
-3. **제안하는 구현** (선택) -- 어떻게 구현하면 좋을지
-
----
-
-## 릴리즈 프로세스
-
-Changesets 기반 자동 릴리즈:
-
-1. PR이 머지되면 changeset 파일이 축적됩니다
-2. `npx changeset version`으로 버전 범프 + CHANGELOG 생성
-3. `npx changeset publish`로 npm에 배포
-4. GitHub Release 자동 생성
-
-### 버전 정책
-
-- `patch` (0.1.x): 버그 수정, 문서 업데이트
-- `minor` (0.x.0): 새 기능, 새 플러그인
-- `major` (x.0.0): 브레이킹 변경 (플러그인 인터페이스 변경 등)
-
-### 플러그인 호환성
-
-모든 플러그인은 `coreVersion: '^0.1.0'`을 선언합니다. Core의 마이너 업데이트는 플러그인 호환성을 유지해야 합니다. 브레이킹 변경 시 `checkCompatibility()`가 자동으로 비호환 플러그인을 거부합니다.
+1. **Description** -- What do you want?
+2. **Use case** -- Why do you need it?
+3. **Proposed implementation** _(optional)_ -- How might it work?
 
 ---
 
-## 도움이 필요하면
+## Release Process
 
-- [GitHub Issues](https://github.com/joungminsung/OpenDocuments/issues)에서 질문
-- `good first issue` 라벨로 시작하기 좋은 이슈 찾기
-- PR에 `help wanted` 라벨이 있으면 기여 환영
+We use [Changesets](https://github.com/changesets/changesets) for automated releases:
 
-감사합니다!
+1. When PRs are merged, changeset files accumulate in `.changeset/`
+2. A maintainer runs `npx changeset version` to bump versions and generate CHANGELOG entries
+3. `npx changeset publish` publishes updated packages to npm
+4. A GitHub Release is created automatically
+
+### Versioning Policy
+
+| Bump | When | Example |
+|------|------|---------|
+| `patch` (0.1.**x**) | Bug fixes, doc updates | Fix FTS5 query escaping |
+| `minor` (0.**x**.0) | New features, new plugins | Add Google Drive connector |
+| `major` (**x**.0.0) | Breaking changes | Change plugin interface |
+
+### Plugin Compatibility
+
+All plugins declare `coreVersion: '^0.1.0'`. Core minor updates must maintain backward compatibility with existing plugins. The `checkCompatibility()` function automatically rejects incompatible plugins at registration time.
+
+---
+
+## Getting Help
+
+- Open a [GitHub Issue](https://github.com/joungminsung/OpenDocuments/issues) for questions or problems
+- Look for `good first issue` labels if you want an easy starting point
+- PRs with `help wanted` labels are actively seeking contributors
+
+Thank you for helping make OpenDocuments better!
