@@ -57,7 +57,14 @@ export function ChatInput({ onSend, disabled }: Props) {
           {disabled ? '...' : 'Send'}
         </button>
       </div>
-      <div className="flex items-center gap-1 text-xs">
+      <div className="flex items-center gap-3 text-xs">
+        <select className="text-xs bg-transparent border border-gray-300 dark:border-gray-700 rounded px-2 py-0.5 text-gray-400">
+          <option value="">All sources</option>
+          <option value="local">Local</option>
+          <option value="github">GitHub</option>
+          <option value="notion">Notion</option>
+          <option value="web">Web</option>
+        </select>
         <span className="text-gray-400">Profile:</span>
         {(['fast', 'balanced', 'precise'] as RAGProfile[]).map((p) => (
           <button

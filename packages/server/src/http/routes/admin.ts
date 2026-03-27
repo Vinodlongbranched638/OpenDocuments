@@ -137,6 +137,12 @@ export function adminRoutes(ctx: AppContext) {
     return c.json({ plugins: details })
   })
 
+  // Workspaces endpoint (public, no admin required)
+  app.get('/api/v1/workspaces', (c) => {
+    const workspaces = ctx.workspaceManager.list()
+    return c.json({ workspaces })
+  })
+
   app.get('/api/v1/admin/connectors', requireRole('admin'), requireScope('admin'), (c) => {
     const connectors = ctx.connectorManager.listConnectors()
     return c.json({ connectors })

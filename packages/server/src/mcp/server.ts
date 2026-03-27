@@ -104,6 +104,11 @@ const TOOLS = [
     description: 'List workspaces',
     inputSchema: { type: 'object' as const, properties: {} },
   },
+  {
+    name: 'opendocs_plugin_list',
+    description: 'List installed plugins',
+    inputSchema: { type: 'object' as const, properties: {} },
+  },
 ]
 
 export function createMCPServer(ctx: AppContext): Server {
@@ -397,6 +402,11 @@ export function createMCPServer(ctx: AppContext): Server {
         case 'opendocs_workspace_list': {
           const workspaces = ctx.workspaceManager.list()
           return { content: [{ type: 'text' as const, text: workspaces.map(w => `${w.name} (${w.mode})`).join('\n') }] }
+        }
+
+        case 'opendocs_plugin_list': {
+          const plugins = ctx.registry.listAll()
+          return { content: [{ type: 'text' as const, text: plugins.map(p => `${p.name} (${p.type}) v${p.version}`).join('\n') || 'No plugins installed' }] }
         }
 
         default:

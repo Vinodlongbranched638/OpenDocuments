@@ -7,6 +7,8 @@ import { SettingsPage } from './components/settings/SettingsPage'
 import { HealthPage } from './components/health/HealthPage'
 import { ConnectorsPage } from './components/connectors/ConnectorsPage'
 import { CommandPalette } from './components/layout/CommandPalette'
+import { WorkspacesPage } from './components/workspaces/WorkspacesPage'
+import { PluginsPage } from './components/plugins/PluginsPage'
 
 const PAGES: Record<string, () => React.ReactElement> = {
   chat: ChatPage,
@@ -14,6 +16,8 @@ const PAGES: Record<string, () => React.ReactElement> = {
   settings: SettingsPage,
   health: HealthPage,
   connectors: ConnectorsPage,
+  plugins: PluginsPage,
+  workspaces: WorkspacesPage,
 }
 
 export function App() {

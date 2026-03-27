@@ -206,5 +206,19 @@ describe('${name}', () => {
       log.arrow(`cd ${name} && npm install && npm run test`)
     })
 
+  cmd.command('test')
+    .description('Run plugin tests')
+    .action(async () => {
+      const { execSync } = await import('node:child_process')
+      try { execSync('npx vitest run', { stdio: 'inherit' }) } catch { process.exit(1) }
+    })
+
+  cmd.command('dev')
+    .description('Start plugin dev mode (watch)')
+    .action(async () => {
+      const { execSync } = await import('node:child_process')
+      try { execSync('npx tsc --watch', { stdio: 'inherit' }) } catch {}
+    })
+
   return cmd
 }
