@@ -77,7 +77,7 @@ describe('LanceDB VectorDB', () => {
       { id: 'chunk-3', content: 'foo', embedding: [0, 0, 1], metadata: { document_id: 'doc-B' } },
     ])
 
-    await vectorDb.deleteByFilter(COLLECTION, "document_id = 'doc-A'")
+    await vectorDb.deleteByFilter(COLLECTION, { document_id: 'doc-A' })
     const count = await vectorDb.count(COLLECTION)
     expect(count).toBe(1)
 

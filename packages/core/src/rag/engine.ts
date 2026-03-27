@@ -105,8 +105,7 @@ export class RAGEngine {
     this.eventBus.emit('query:received', { queryId, query: input.query })
 
     if (route === 'direct') {
-      // handleDirect is synchronous (no async operations) -- no await needed
-      const result = this.handleDirect(queryId, input.query, profileName)
+      const result = await this.handleDirect(queryId, input.query, profileName)
       yield { type: 'chunk', data: result.answer }
       yield { type: 'sources', data: result.sources }
       yield { type: 'confidence', data: result.confidence }
@@ -161,7 +160,7 @@ export class RAGEngine {
     yield { type: 'done', data: { queryId, route, profile: profileName } }
   }
 
-  private handleDirect(queryId: string, query: string, profile: string): QueryResult {
+  private async handleDirect(queryId: string, query: string, profile: string): Promise<QueryResult> {
     const answer = this.getDirectResponse(query)
 
     this.eventBus.emit('query:generated', { queryId })

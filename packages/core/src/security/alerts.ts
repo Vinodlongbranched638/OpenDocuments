@@ -16,6 +16,7 @@ export interface Alert {
 export class SecurityAlertManager {
   private rules: AlertRule[] = []
   private alerts: Alert[] = []
+  private eventCounts = new Map<string, { count: number; timestamps: number[] }>()
 
   constructor(private db: DB, rules?: AlertRule[]) {
     this.rules = rules || [
@@ -26,17 +27,21 @@ export class SecurityAlertManager {
   }
 
   checkEvent(eventType: string, details?: Record<string, unknown>): Alert | null {
+    const now = Date.now()
+
+    // Track in-memory so alerts work even when audit logging is disabled
+    let entry = this.eventCounts.get(eventType)
+    if (!entry) { entry = { count: 0, timestamps: [] }; this.eventCounts.set(eventType, entry) }
+    entry.timestamps.push(now)
+
     for (const rule of this.rules) {
       if (rule.condition.event !== eventType) continue
 
-      // Count recent events of this type
-      const since = new Date(Date.now() - rule.condition.windowMinutes * 60000).toISOString()
-      const count = this.db.get<any>(
-        'SELECT COUNT(*) as cnt FROM audit_logs WHERE event_type = ? AND created_at > ?',
-        [eventType, since]
-      )
+      const windowMs = rule.condition.windowMinutes * 60000
+      // Filter to recent timestamps within the rule's window
+      entry.timestamps = entry.timestamps.filter(t => now - t < windowMs)
 
-      if ((count?.cnt || 0) >= rule.condition.threshold) {
+      if (entry.timestamps.length >= rule.condition.threshold) {
         const alert: Alert = {
           rule: rule.name,
           message: `${rule.name}: ${eventType} threshold (${rule.condition.threshold}) exceeded in ${rule.condition.windowMinutes}m window`,

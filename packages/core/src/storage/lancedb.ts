@@ -139,9 +139,9 @@ export async function createLanceDB(dataDir: string): Promise<VectorDB> {
       }
     },
 
-    async deleteByFilter(collectionName: string, filter: string): Promise<void> {
+    async deleteByFilter(collectionName: string, filter: Record<string, string | number | boolean>): Promise<void> {
       const table = await db.openTable(collectionName)
-      await table.delete(filter)
+      await table.delete(buildWhereClause(filter))
     },
 
     async count(collectionName: string): Promise<number> {

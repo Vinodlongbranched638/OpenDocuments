@@ -23,24 +23,29 @@ describe('SecurityAlertManager', () => {
     for (let i = 0; i < 5; i++) {
       auditLogger.log({ eventType: 'auth:failed' })
     }
-    const alert = alertMgr.checkEvent('auth:failed')
+    // Each checkEvent call also tracks the event in-memory
+    let alert: ReturnType<SecurityAlertManager['checkEvent']> = null
+    for (let i = 0; i < 5; i++) {
+      alert = alertMgr.checkEvent('auth:failed')
+    }
     expect(alert).toBeNull()
   })
 
   it('triggers alert when threshold exceeded', () => {
+    let alert: ReturnType<SecurityAlertManager['checkEvent']> = null
     for (let i = 0; i < 11; i++) {
       auditLogger.log({ eventType: 'auth:failed' })
+      alert = alertMgr.checkEvent('auth:failed')
     }
-    const alert = alertMgr.checkEvent('auth:failed')
     expect(alert).not.toBeNull()
     expect(alert!.rule).toBe('brute-force')
   })
 
   it('tracks recent alerts', () => {
-    for (let i = 0; i < 11; i++) {
+    for (let i = 0; i < 10; i++) {
       auditLogger.log({ eventType: 'auth:failed' })
+      alertMgr.checkEvent('auth:failed')
     }
-    alertMgr.checkEvent('auth:failed')
     expect(alertMgr.getRecentAlerts()).toHaveLength(1)
   })
 })

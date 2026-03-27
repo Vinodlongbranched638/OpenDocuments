@@ -8,8 +8,8 @@ export function configCommand() {
     .argument('[value]', 'Config value to set')
     .action(async (key, value) => {
       if (value) {
-        // TODO: Implement config writing (modify opendocs.config.ts)
-        log.fail('Config writing is not yet implemented. Edit opendocs.config.ts directly.')
+        log.info(`To set configuration values, edit opendocs.config.ts directly:`)
+        log.arrow(`$EDITOR opendocs.config.ts`)
         return
       }
       const config = loadConfig(process.cwd())

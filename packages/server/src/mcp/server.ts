@@ -3,6 +3,8 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js'
 import { discoverFiles } from '@opendocs/core'
 import type { AppContext } from '../bootstrap.js'
@@ -84,16 +86,42 @@ const TOOLS = [
   },
 ]
 
-// TODO(Phase 2): Add MCP Resources (opendocs://documents, opendocs://documents/{id}, opendocs://stats)
-// Currently only tools are exposed. Add resources capability when needed.
 export function createMCPServer(ctx: AppContext): Server {
   const server = new Server(
     { name: 'opendocs', version: '0.1.0' },
-    { capabilities: { tools: {} } }
+    { capabilities: { tools: {}, resources: {} } }
   )
 
   server.setRequestHandler(ListToolsRequestSchema, async () => {
     return { tools: TOOLS }
+  })
+
+  server.setRequestHandler(ListResourcesRequestSchema, async () => ({
+    resources: [
+      { uri: 'opendocs://documents', name: 'Document List', mimeType: 'application/json' },
+      { uri: 'opendocs://stats', name: 'System Stats', mimeType: 'application/json' },
+    ],
+  }))
+
+  server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+    const uri = request.params.uri
+    if (uri === 'opendocs://documents') {
+      const docs = ctx.store.listDocuments()
+      return { contents: [{ uri, mimeType: 'application/json', text: JSON.stringify(docs) }] }
+    }
+    if (uri === 'opendocs://stats') {
+      const docs = ctx.store.listDocuments()
+      const workspaces = ctx.workspaceManager.list()
+      const plugins = ctx.registry.listAll()
+      return {
+        contents: [{
+          uri,
+          mimeType: 'application/json',
+          text: JSON.stringify({ documents: docs.length, workspaces: workspaces.length, plugins: plugins.length }),
+        }],
+      }
+    }
+    throw new Error(`Unknown resource: ${uri}`)
   })
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {

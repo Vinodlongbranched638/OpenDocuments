@@ -26,11 +26,11 @@ export interface VectorDB {
   search(collection: string, opts: VectorSearchOpts): Promise<VectorSearchResult[]>
   delete(collection: string, ids: string[]): Promise<void>
   /**
-   * Delete documents matching a raw filter expression.
-   * WARNING: The filter string is passed directly to the database engine.
-   * Callers MUST sanitize values to prevent injection (escape single quotes with '').
+   * Delete documents matching a structured filter.
+   * The filter object maps column names to values, which are safely escaped
+   * before being passed to the database engine.
    */
-  deleteByFilter(collection: string, filter: string): Promise<void>
+  deleteByFilter(collection: string, filter: Record<string, string | number | boolean>): Promise<void>
   count(collection: string): Promise<number>
   close(): Promise<void>
 }

@@ -162,14 +162,12 @@ export class DocumentStore {
       [now, now, documentId]
     )
     // Also remove vectors (they can't be soft-deleted in LanceDB)
-    const safeId = documentId.replace(/'/g, "''")
-    await this.vectorDb.deleteByFilter(COLLECTION, `document_id = '${safeId}'`)
+    await this.vectorDb.deleteByFilter(COLLECTION, { document_id: documentId })
   }
 
   async hardDeleteDocument(documentId: string): Promise<void> {
     // Step 1: Delete vectors. If this throws, SQLite delete is never reached -- both stores remain consistent.
-    const safeId = documentId.replace(/'/g, "''")
-    await this.vectorDb.deleteByFilter(COLLECTION, `document_id = '${safeId}'`)
+    await this.vectorDb.deleteByFilter(COLLECTION, { document_id: documentId })
 
     // Step 2: Delete SQLite row permanently.
     this.db.run('DELETE FROM documents WHERE id = ?', [documentId])

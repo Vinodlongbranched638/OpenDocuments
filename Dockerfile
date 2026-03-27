@@ -15,6 +15,7 @@ COPY --from=builder /app/packages/server/package.json packages/server/
 COPY --from=builder /app/packages/cli/dist packages/cli/dist
 COPY --from=builder /app/packages/cli/package.json packages/cli/
 COPY --from=builder /app/packages/web/dist packages/web/dist
+COPY --from=builder /app/plugins/ plugins/
 COPY --from=builder /app/node_modules node_modules
 COPY --from=builder /app/package.json .
 
