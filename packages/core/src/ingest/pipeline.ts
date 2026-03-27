@@ -9,6 +9,7 @@ import type { StoredChunk } from './document-store.js'
 import type { ParsedChunk, RawDocument, ParserPlugin } from '../plugin/interfaces.js'
 import type { OpenDocsConfig } from '../config/schema.js'
 import type { PIIRedactor } from '../security/redactor.js'
+import type { DocumentVersionManager } from '../document/version-manager.js'
 
 export interface IngestInput {
   title: string
@@ -33,6 +34,7 @@ export interface IngestPipelineOptions {
   embeddingDimensions: number
   config?: OpenDocsConfig
   redactor?: PIIRedactor
+  versionManager?: DocumentVersionManager
 }
 
 const BATCH_SIZE = 32
@@ -206,6 +208,11 @@ export class IngestPipeline {
 
       // Update content hash
       store.updateContentHash(documentId, contentHash)
+
+      // Record version if version manager is configured
+      if (this.opts.versionManager) {
+        this.opts.versionManager.recordVersion(documentId, contentHash, chunksWithEmbeddings.length)
+      }
 
       eventBus.emit('document:indexed', { documentId, chunks: chunksWithEmbeddings.length })
 

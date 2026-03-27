@@ -446,15 +446,18 @@ export function createMCPServer(ctx: AppContext): Server {
         case 'opendocs_workspace_switch': {
           const ws = ctx.workspaceManager.getByName((args as Record<string, unknown>).name as string)
           if (!ws) return { content: [{ type: 'text' as const, text: 'Workspace not found' }] }
-          return { content: [{ type: 'text' as const, text: `Switched to workspace: ${ws.name}` }] }
+          // Note: Full workspace switching requires server restart with different config.
+          // MCP sessions are bound to the workspace configured at startup.
+          return { content: [{ type: 'text' as const, text: `Workspace "${ws.name}" exists. To switch, update opendocs.config.ts and restart the server. MCP sessions are bound to the startup workspace.` }] }
         }
 
         case 'opendocs_document_reindex': {
           const id = (args as Record<string, unknown>).id as string
           const doc = ctx.store.getDocument(id)
           if (!doc) return { content: [{ type: 'text' as const, text: 'Document not found' }] }
-          await ctx.store.hardDeleteDocument(id)
-          return { content: [{ type: 'text' as const, text: `Document ${id} marked for reindexing. Re-upload or re-sync to index.` }] }
+          await ctx.store.softDeleteDocument(id)
+          ctx.store.restoreDocument(id)
+          return { content: [{ type: 'text' as const, text: `Document "${doc.title}" reset to pending. Re-index it with: opendocs index ${doc.source_path}` }] }
         }
 
         case 'opendocs_index_status': {

@@ -47,6 +47,7 @@ export type StreamEvent =
   | { type: 'sources'; data: SearchResult[] }
   | { type: 'confidence'; data: ConfidenceResult }
   | { type: 'grounding'; data: import('./grounding.js').GroundingResult }
+  | { type: 'intent'; data: string }
   | { type: 'done'; data: { queryId: string; route: QueryRoute; profile: string } }
 
 export class RAGEngine {
@@ -119,6 +120,7 @@ export class RAGEngine {
 
     // Classify intent
     const intent = classifyIntent(input.query)
+    yield { type: 'intent', data: intent }
 
     // Retrieve with decomposition and cross-lingual support
     const sources = await this.retrieveWithFeatures(queryId, input.query, config)

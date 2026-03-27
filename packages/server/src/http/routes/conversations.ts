@@ -52,6 +52,13 @@ export function conversationRoutes(ctx: AppContext) {
 
   app.post('/api/v1/conversations/:id/share', async (c) => {
     const id = c.req.param('id')
+    const convo = ctx.db.get<any>('SELECT * FROM conversations WHERE id = ? AND deleted_at IS NULL', [id])
+    if (!convo) return c.json({ error: 'Conversation not found' }, 404)
+    // In team mode, verify the conversation belongs to the requesting user's workspace
+    const auth = c.get('auth') as any
+    if (auth?.record && convo.workspace_id !== auth.record.workspaceId) {
+      return c.json({ error: 'Not authorized to share this conversation' }, 403)
+    }
     const token = randomBytes(16).toString('hex')
     ctx.db.run('UPDATE conversations SET shared = 1, share_token = ? WHERE id = ?', [token, id])
     return c.json({ shareUrl: `/shared/${token}` })

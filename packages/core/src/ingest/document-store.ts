@@ -203,7 +203,8 @@ export class DocumentStore {
       [now, now, documentId]
     )
     // Clean FTS index
-    this.db.run('DELETE FROM chunks_fts WHERE chunk_id LIKE ?', [documentId + '_%'])
+    const escapedId = documentId.replace(/%/g, '\\%').replace(/_/g, '\\_')
+    this.db.run("DELETE FROM chunks_fts WHERE chunk_id LIKE ? ESCAPE '\\'", [escapedId + '_%'])
     // Also remove vectors (they can't be soft-deleted in LanceDB)
     await this.vectorDb.deleteByFilter(COLLECTION, { document_id: documentId })
   }

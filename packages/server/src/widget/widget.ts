@@ -16,8 +16,12 @@ export function generateWidgetScript(): string {
     button.style.cssText = 'width:56px;height:56px;border-radius:50%;background:#2563eb;color:white;border:none;font-size:24px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.15);';
 
     var iframe = document.createElement('iframe');
-    iframe.src = config.server + '/?widget=true' + (config.apiKey ? '&apiKey=' + encodeURIComponent(config.apiKey) : '') + (config.workspace ? '&workspace=' + encodeURIComponent(config.workspace) : '');
+    iframe.src = config.server + '/?widget=true';
     iframe.style.cssText = 'width:380px;height:520px;border:none;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.12);display:none;';
+
+    iframe.onload = function() {
+      iframe.contentWindow.postMessage({ type: 'opendocs-auth', apiKey: config.apiKey, workspace: config.workspace }, config.server);
+    };
 
     button.onclick = function() {
       iframe.style.display = iframe.style.display === 'none' ? 'block' : 'none';

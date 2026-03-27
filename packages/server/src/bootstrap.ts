@@ -23,6 +23,7 @@ import {
   APIKeyManager,
   PIIRedactor,
   AuditLogger,
+  DocumentVersionManager,
   type DB,
   type VectorDB,
   type ModelPlugin,
@@ -270,12 +271,21 @@ export async function bootstrap(opts: BootstrapOptions = {}): Promise<AppContext
   // 1. Load config
   const projectDir = opts.projectDir || process.cwd()
   const baseConfig = loadConfig(projectDir)
-  const config: OpenDocsConfig = opts.configOverrides
-    ? { ...baseConfig, ...opts.configOverrides }
-    : baseConfig
+  let config: OpenDocsConfig = baseConfig
+  if (opts.configOverrides) {
+    config = { ...baseConfig }
+    const overrides = opts.configOverrides as Record<string, unknown>
+    for (const [key, value] of Object.entries(overrides)) {
+      if (typeof value === 'object' && value !== null && !Array.isArray(value) && typeof (config as any)[key] === 'object') {
+        (config as any)[key] = { ...(config as any)[key], ...value }
+      } else {
+        (config as any)[key] = value
+      }
+    }
+  }
 
   // Resolve dataDir
-  const dataDir = opts.dataDir || config.storage.dataDir.replace(/^~/, process.env.HOME || '~')
+  const dataDir = opts.dataDir || process.env.OPENDOCS_DATA_DIR || config.storage.dataDir.replace(/^~/, process.env.HOME || '~')
   mkdirSync(dataDir, { recursive: true })
 
   // Resolve embedding dimensions from config or provider default
@@ -374,6 +384,8 @@ export async function bootstrap(opts: BootstrapOptions = {}): Promise<AppContext
     const autoRedactConfig = config.security.dataPolicy.autoRedact
     const redactor = new PIIRedactor(autoRedactConfig)
 
+    const versionManager = new DocumentVersionManager(db)
+
     const pipeline = new IngestPipeline({
       store,
       registry,
@@ -382,6 +394,7 @@ export async function bootstrap(opts: BootstrapOptions = {}): Promise<AppContext
       embeddingDimensions,
       config,
       redactor,
+      versionManager,
     })
 
     // Capture for shutdown closure

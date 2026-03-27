@@ -14,6 +14,7 @@ export interface Alert {
 }
 
 export class SecurityAlertManager {
+  private static MAX_ALERTS = 1000
   private rules: AlertRule[] = []
   private alerts: Alert[] = []
   private eventCounts = new Map<string, { count: number; timestamps: number[] }>()
@@ -49,6 +50,9 @@ export class SecurityAlertManager {
           details: details || {},
         }
         this.alerts.push(alert)
+        if (this.alerts.length > SecurityAlertManager.MAX_ALERTS) {
+          this.alerts = this.alerts.slice(-SecurityAlertManager.MAX_ALERTS)
+        }
         return alert
       }
     }

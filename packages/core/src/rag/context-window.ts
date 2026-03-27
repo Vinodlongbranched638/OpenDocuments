@@ -48,7 +48,10 @@ export function fitToContextWindow(
       // Try to truncate this chunk to fit remaining space
       const remaining = maxChunkTokens - usedTokens
       if (remaining > 50) { // Only if there's meaningful space left
-        const truncatedContent = chunk.content.substring(0, remaining * 4) // rough char estimate
+        // Estimate chars from remaining tokens (CJK-aware)
+        const cjkRatio = (chunk.content.match(/[\u3000-\u9fff\uac00-\ud7af]/g) || []).length / chunk.content.length
+        const charsPerToken = cjkRatio > 0.3 ? 1.5 : 4
+        const truncatedContent = chunk.content.substring(0, Math.floor(remaining * charsPerToken))
         fitted.push({ ...chunk, content: truncatedContent + '...' })
       }
       break

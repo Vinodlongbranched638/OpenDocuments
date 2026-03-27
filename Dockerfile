@@ -9,6 +9,7 @@ RUN npx turbo build
 FROM node:20-alpine
 WORKDIR /app
 COPY --from=builder /app/packages/core/dist packages/core/dist
+COPY --from=builder /app/packages/core/dist/storage/migrations packages/core/dist/storage/migrations
 COPY --from=builder /app/packages/core/package.json packages/core/
 COPY --from=builder /app/packages/server/dist packages/server/dist
 COPY --from=builder /app/packages/server/package.json packages/server/
