@@ -5,6 +5,7 @@ const NAV_ITEMS = [
   { id: 'documents' as const, label: 'Documents', icon: '📄' },
   { id: 'settings' as const, label: 'Settings', icon: '⚙️' },
   { id: 'health' as const, label: 'Admin', icon: '📊' },
+  { id: 'connectors' as const, label: 'Connectors', icon: '🔗' },
 ]
 
 export function Sidebar() {

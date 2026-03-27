@@ -5,12 +5,14 @@ import { ChatPage } from './components/chat/ChatPage'
 import { DocumentsPage } from './components/documents/DocumentsPage'
 import { SettingsPage } from './components/settings/SettingsPage'
 import { HealthPage } from './components/health/HealthPage'
+import { ConnectorsPage } from './components/connectors/ConnectorsPage'
 
 const PAGES: Record<string, () => React.ReactElement> = {
   chat: ChatPage,
   documents: DocumentsPage,
   settings: SettingsPage,
   health: HealthPage,
+  connectors: ConnectorsPage,
 }
 
 export function App() {

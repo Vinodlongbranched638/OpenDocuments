@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import type { RAGProfile } from '../lib/types'
 
 type Theme = 'light' | 'dark' | 'system'
-type Page = 'chat' | 'documents' | 'settings' | 'health'
+type Page = 'chat' | 'documents' | 'settings' | 'health' | 'connectors'
 
 interface AppState {
   theme: Theme

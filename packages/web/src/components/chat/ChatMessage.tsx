@@ -5,9 +5,10 @@ import type { ChatMessage as ChatMessageType } from '../../lib/types'
 interface Props {
   message: ChatMessageType
   isStreaming?: boolean
+  onFeedback?: (type: 'positive' | 'negative') => void
 }
 
-export function ChatMessage({ message, isStreaming }: Props) {
+export function ChatMessage({ message, isStreaming, onFeedback }: Props) {
   const isUser = message.role === 'user'
 
   return (
@@ -54,6 +55,24 @@ export function ChatMessage({ message, isStreaming }: Props) {
             }`}>
               Confidence: {message.confidence.level} ({(message.confidence.score * 100).toFixed(0)}%)
             </span>
+          </div>
+        )}
+
+        {/* Feedback buttons - only for assistant messages */}
+        {!isUser && !isStreaming && (
+          <div className="mt-1.5 flex gap-1">
+            <button
+              onClick={() => onFeedback?.('positive')}
+              className="text-xs px-2 py-0.5 rounded hover:bg-green-100 dark:hover:bg-green-900/30 text-gray-400 hover:text-green-600 transition-colors"
+            >
+              👍
+            </button>
+            <button
+              onClick={() => onFeedback?.('negative')}
+              className="text-xs px-2 py-0.5 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-600 transition-colors"
+            >
+              👎
+            </button>
           </div>
         )}
 
