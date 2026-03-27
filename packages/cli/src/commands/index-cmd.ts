@@ -1,5 +1,5 @@
 import { Command } from 'commander'
-import { log, discoverFiles } from '@opendocs/core'
+import { log, discoverFiles, FileWatcher } from '@opendocs/core'
 import { getContext, shutdownContext } from '../utils/bootstrap.js'
 import { readFileSync } from 'node:fs'
 import { extname, basename, resolve } from 'node:path'
@@ -9,9 +9,11 @@ export function indexCommand() {
     .description('Index a file or directory')
     .argument('<path>', 'File or directory path')
     .option('--reindex', 'Force reindex even if unchanged')
+    .option('--watch', 'Watch for file changes')
     .action(async (inputPath, opts) => {
       const ctx = await getContext()
       const absPath = resolve(inputPath)
+      const textExtensions = new Set(['.md', '.mdx', '.txt', '.json', '.yaml', '.yml', '.toml', '.csv', '.html', '.htm', '.ipynb'])
       try {
         log.heading('Indexing')
         const files = discoverFiles(absPath)
@@ -26,7 +28,6 @@ export function indexCommand() {
               await ctx.store.hardDeleteDocument(existing.id)
             }
           }
-          const textExtensions = new Set(['.md', '.mdx', '.txt', '.json', '.yaml', '.yml', '.toml', '.csv', '.html', '.htm', '.ipynb'])
           const ext = extname(file)
           const content = textExtensions.has(ext) ? readFileSync(file, 'utf-8') : readFileSync(file)
           const result = await ctx.pipeline.ingest({
@@ -37,8 +38,36 @@ export function indexCommand() {
           else if (result.status === 'skipped') log.info(`${basename(file)} (unchanged)`)
           else log.fail(`${basename(file)} (error)`)
         }
+
+        // After the normal indexing loop, if --watch:
+        if (opts.watch) {
+          log.info('Watching for changes... (Ctrl+C to stop)')
+          const watcher = new FileWatcher(
+            absPath,
+            new Set(['.md', '.mdx', '.txt', '.pdf', '.docx', '.xlsx', '.html', '.ipynb', '.eml']),
+            async (changes) => {
+              for (const change of changes) {
+                if (change.type === 'deleted') {
+                  log.info(`Deleted: ${change.path}`)
+                } else {
+                  const content = readFileSync(change.path, textExtensions.has(extname(change.path)) ? 'utf-8' : undefined as any)
+                  const result = await ctx.pipeline.ingest({
+                    title: basename(change.path), content, sourceType: 'local',
+                    sourcePath: change.path, fileType: extname(change.path),
+                  })
+                  log.ok(`${change.type}: ${basename(change.path)} (${result.chunks} chunks)`)
+                }
+              }
+            }
+          )
+          watcher.start()
+          // Keep process alive
+          await new Promise(() => {})
+        }
       } finally {
-        await shutdownContext()
+        if (!opts.watch) {
+          await shutdownContext()
+        }
       }
     })
 }

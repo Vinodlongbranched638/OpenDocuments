@@ -7,6 +7,7 @@ export { log } from './utils/logger.js'
 export { sha256 } from './utils/hash.js'
 export { discoverFiles } from './utils/file-discovery.js'
 export { fetchWithTimeout } from './utils/fetch.js'
+export { FileWatcher, type FileChange } from './utils/file-watcher.js'
 export { EventBus, type OpenDocsEventMap, type EventName } from './events/bus.js'
 export { PluginRegistry } from './plugin/registry.js'
 export { checkCompatibility, type CompatibilityResult } from './plugin/capability.js'
@@ -36,6 +37,8 @@ export { ConnectorManager, type ConnectorSyncResult } from './connector/manager.
 
 export { MarkdownParser } from './parsers/markdown.js'
 export { PlainTextParser } from './parsers/plaintext.js'
+export { StructuredDataParser } from './parsers/structured.js'
+export { ArchiveParser } from './parsers/archive.js'
 
 export { getProfileConfig, type RAGProfileConfig } from './rag/profiles.js'
 export { classifyIntent, type QueryIntent } from './rag/intent.js'
