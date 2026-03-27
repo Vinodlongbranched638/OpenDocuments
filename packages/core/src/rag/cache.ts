@@ -54,6 +54,10 @@ export class RAGCache<T = unknown> {
     this.store.clear()
   }
 
+  /**
+   * Returns the count of non-expired entries.
+   * Note: This getter performs lazy cleanup of expired entries as a side effect.
+   */
   get size(): number {
     // Clean expired entries first
     const now = Date.now()

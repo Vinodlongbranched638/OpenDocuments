@@ -27,7 +27,7 @@ export function decomposeQuery(query: string): DecomposedQuery {
     const part1 = andMatch[1].trim()
     const part2 = andMatch[2].trim()
     // Only decompose if parts are substantially different (not just "X and Y" as a list)
-    if (part1.length > 15 && part2.length > 15) {
+    if (part1.length > 10 && part2.length > 10) {
       return {
         original: trimmed,
         subQueries: [part1, part2],

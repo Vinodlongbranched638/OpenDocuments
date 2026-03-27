@@ -67,6 +67,8 @@ export function classifyIntent(query: string): QueryIntent {
   const lower = query.toLowerCase()
 
   // Score each intent
+  // Patterns use /i flag on original query; keywords use lowercased query.
+  // Both are case-insensitive but via different mechanisms.
   let bestIntent: QueryIntent = 'general'
   let bestScore = 0
 

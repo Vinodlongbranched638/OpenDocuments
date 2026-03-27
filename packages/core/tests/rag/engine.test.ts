@@ -92,6 +92,12 @@ describe('RAGEngine', () => {
     expect(result.answer).toBeDefined()
   })
 
+  it('uses decomposition in precise profile', async () => {
+    const result = await engine.query({ query: 'Redis vs MongoDB', profile: 'precise' })
+    expect(result.route).toBe('rag')
+    expect(result.profile).toBe('precise')
+  })
+
   it('caches identical queries', async () => {
     const result1 = await engine.query({ query: 'What is Redis?' })
     const result2 = await engine.query({ query: 'What is Redis?' })

@@ -44,6 +44,7 @@ export type StreamEvent =
   | { type: 'chunk'; data: string }
   | { type: 'sources'; data: SearchResult[] }
   | { type: 'confidence'; data: ConfidenceResult }
+  | { type: 'grounding'; data: import('./grounding.js').GroundingResult }
   | { type: 'done'; data: { queryId: string; route: QueryRoute; profile: string } }
 
 export class RAGEngine {
@@ -76,20 +77,21 @@ export class RAGEngine {
 
     this.eventBus.emit('query:received', { queryId, query: input.query })
 
-    // L1 cache check
-    const cacheKey = sha256(input.query + profileName)
+    // L1 cache check (null byte delimiter prevents "queryA" + "B" == "query" + "AB" collisions)
+    const cacheKey = sha256(`${input.query}\x00${profileName}`)
+
+    if (route === 'direct') {
+      return this.handleDirect(queryId, input.query, profileName)
+    }
+
     const cached = this.queryCache.get(cacheKey) as QueryResult | undefined
     if (cached) {
       return { ...cached, queryId }
     }
 
-    if (route === 'direct') {
-      const result = this.handleDirect(queryId, input.query, profileName)
-      this.queryCache.set(cacheKey, result)
-      return result
-    }
-
     const result = await this.handleRAG(queryId, input.query, config, profileName, route)
+    // Note: Full QueryResult including source content is cached.
+    // Memory impact: ~500 entries * ~10KB average = ~5MB max. Acceptable for L1 cache.
     this.queryCache.set(cacheKey, result)
     return result
   }
@@ -125,7 +127,6 @@ export class RAGEngine {
     yield { type: 'confidence', data: confidence }
 
     // TODO: Web search integration when config.features.webSearch is true/fallback
-    // Streaming skips cache and grounding (they require the full answer)
 
     // Generate (streaming)
     const genInput: GenerateInput = {
@@ -141,6 +142,21 @@ export class RAGEngine {
     }
 
     this.eventBus.emit('query:generated', { queryId })
+
+    // Apply grounding check after streaming completes (requires full answer)
+    if (config.features.hallucinationGuard && fullAnswer) {
+      const strictMode = config.features.hallucinationGuard === 'strict'
+      const grounding = checkGrounding(fullAnswer, sources, strictMode)
+      if (grounding.warnings.length > 0) {
+        yield { type: 'grounding', data: grounding }
+      }
+    }
+
+    // Cache the streamed result
+    const cacheKey = sha256(`${input.query}\x00${profileName}`)
+    this.queryCache.set(cacheKey, {
+      queryId, answer: fullAnswer, sources, confidence, route, profile: profileName,
+    })
 
     yield { type: 'done', data: { queryId, route, profile: profileName } }
   }
@@ -240,17 +256,17 @@ export class RAGEngine {
         variantResultSets.push(results)
       }
 
-      // RRF merge cross-lingual variants
+      // RRF merge cross-lingual variants (use chunkId for efficient dedup)
       const merged = variantResultSets.length > 1
-        ? reciprocalRankFusion(variantResultSets)
+        ? reciprocalRankFusion(variantResultSets, 60, (item) => item.chunkId)
         : variantResultSets[0]
 
       subQueryResultSets.push(merged)
     }
 
-    // RRF merge sub-query results if decomposed
+    // RRF merge sub-query results if decomposed (use chunkId for efficient dedup)
     let results = decomposed.isDecomposed && subQueryResultSets.length > 1
-      ? reciprocalRankFusion(subQueryResultSets)
+      ? reciprocalRankFusion(subQueryResultSets, 60, (item) => item.chunkId)
       : subQueryResultSets[0]
 
     // Rerank if enabled

@@ -1,5 +1,12 @@
 import type { SearchResult } from '../ingest/document-store.js'
 
+const STOPWORDS = new Set([
+  'this', 'that', 'with', 'from', 'have', 'been', 'will', 'they',
+  'their', 'there', 'what', 'when', 'where', 'which', 'about', 'into',
+  'more', 'some', 'than', 'them', 'then', 'these', 'very', 'also',
+  'just', 'only', 'other', 'such',
+])
+
 export interface GroundingResult {
   groundedSentences: number
   ungroundedSentences: number
@@ -19,7 +26,7 @@ export function checkGrounding(
 ): GroundingResult {
   const sentences = splitSentences(answer)
   const sourceText = sources.map(s => s.content.toLowerCase()).join(' ')
-  const sourceWords = new Set(sourceText.split(/\s+/).filter(w => w.length > 3))
+  const sourceWords = new Set(sourceText.split(/\s+/).filter(w => w.length > 3 && !STOPWORDS.has(w)))
 
   let grounded = 0
   let ungrounded = 0
@@ -27,7 +34,7 @@ export function checkGrounding(
   const annotated: string[] = []
 
   for (const sentence of sentences) {
-    const sentenceWords = sentence.toLowerCase().split(/\s+/).filter(w => w.length > 3)
+    const sentenceWords = sentence.toLowerCase().split(/\s+/).filter(w => w.length > 3 && !STOPWORDS.has(w))
     if (sentenceWords.length === 0) {
       annotated.push(sentence)
       continue
@@ -36,8 +43,8 @@ export function checkGrounding(
     const overlap = sentenceWords.filter(w => sourceWords.has(w)).length
     const coverage = overlap / sentenceWords.length
 
-    // Threshold: at least 30% of significant words should appear in sources
-    const threshold = strictMode ? 0.4 : 0.3
+    // Threshold: at least 40% of significant words should appear in sources
+    const threshold = strictMode ? 0.5 : 0.4
 
     if (coverage >= threshold) {
       grounded++

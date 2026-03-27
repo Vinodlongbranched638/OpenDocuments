@@ -17,16 +17,19 @@ export async function rerankResults(
     try {
       const docs = results.map(r => r.content)
       const reranked = await model.rerank(query, docs)
-      return reranked.indices.map((idx, i) => ({
-        ...results[idx],
-        score: reranked.scores[i],
-      }))
+      return reranked.indices
+        .filter(idx => idx >= 0 && idx < results.length)
+        .map((idx, i) => ({
+          ...results[idx],
+          score: reranked.scores[i] ?? 0,
+        }))
     } catch {
       // Fallback to keyword scoring
     }
   }
 
   // Fallback: keyword overlap scoring
+  // Note: Set allocation per call is acceptable at current scale (typically <20 results).
   const queryWords = new Set(query.toLowerCase().split(/\s+/).filter(w => w.length > 2))
 
   return results

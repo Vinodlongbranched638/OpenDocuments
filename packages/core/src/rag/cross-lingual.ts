@@ -4,6 +4,7 @@
  * Not a full translator -- supplements the original query with keyword variations.
  */
 
+// TODO: Load custom dictionaries from config for domain-specific terminology
 const KO_EN_DICT: Record<string, string> = {
   '인증': 'authentication', '설정': 'configuration', '배포': 'deployment',
   '설치': 'installation', '데이터베이스': 'database', '서버': 'server',
@@ -72,7 +73,8 @@ export function expandQuery(query: string): string[] {
  */
 export function reciprocalRankFusion<T extends { score: number }>(
   resultSets: T[][],
-  k = 60
+  k = 60,
+  getKey?: (item: T) => string
 ): T[] {
   const scores = new Map<string, { item: T; score: number }>()
 
@@ -81,7 +83,7 @@ export function reciprocalRankFusion<T extends { score: number }>(
       const item = results[rank]
       // Key excludes score so items with same content but different scores are deduped
       const { score: _score, ...rest } = item as T & { score: number }
-      const key = JSON.stringify(rest)
+      const key = getKey ? getKey(item) : JSON.stringify(rest)
       const existing = scores.get(key)
       const rrfScore = 1 / (k + rank + 1)
 
