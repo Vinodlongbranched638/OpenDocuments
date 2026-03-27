@@ -38,12 +38,14 @@ export { MarkdownParser } from './parsers/markdown.js'
 export { PlainTextParser } from './parsers/plaintext.js'
 
 export { getProfileConfig, type RAGProfileConfig } from './rag/profiles.js'
+export { classifyIntent, type QueryIntent } from './rag/intent.js'
 export { calculateConfidence, type ConfidenceInput, type ConfidenceResult } from './rag/confidence.js'
 export { Retriever, type RetrieveOptions } from './rag/retriever.js'
 
 export { generateAnswer, buildPrompt, type GenerateInput } from './rag/generator.js'
 export { routeQuery, type QueryRoute } from './rag/router.js'
 export { RAGEngine, type QueryInput, type QueryResult, type RAGEngineOptions } from './rag/engine.js'
+export { decomposeQuery, type DecomposedQuery } from './rag/decomposer.js'
 
 export { ConversationManager, type Conversation, type Message } from './conversation/manager.js'
 
