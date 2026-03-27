@@ -5,7 +5,7 @@ const SUPPORTED_EXTENSIONS = new Set([
   '.md', '.mdx', '.txt',          // built-in
   '.json', '.yaml', '.yml', '.toml', // structured data parsers
   '.zip',                          // archive parser
-  '.pdf', '.docx',                 // document parsers
+  '.pdf', '.docx', '.pptx',        // document parsers
   '.xlsx', '.xls', '.csv',        // spreadsheet parsers
   '.html', '.htm',                 // HTML parser
   '.ipynb',                        // Jupyter parser

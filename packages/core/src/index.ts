@@ -70,6 +70,8 @@ export { PIIRedactor, type RedactorConfig } from './security/redactor.js'
 export { AuditLogger, type AuditEventType, type AuditEntry } from './security/audit.js'
 export { SecurityAlertManager, type AlertRule, type Alert } from './security/alerts.js'
 
+export { TelemetryCollector, type TelemetryEvent } from './telemetry/collector.js'
+
 export type {
   PluginType,
   PipelineStage,
