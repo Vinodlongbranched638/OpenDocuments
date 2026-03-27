@@ -49,6 +49,7 @@ export { decomposeQuery, type DecomposedQuery } from './rag/decomposer.js'
 export { expandQuery, reciprocalRankFusion } from './rag/cross-lingual.js'
 export { rerankResults } from './rag/reranker.js'
 export { checkGrounding, type GroundingResult } from './rag/grounding.js'
+export { crossWorkspaceSearch } from './rag/cross-workspace.js'
 export { RAGCache, createQueryCache, createEmbeddingCache, createWebSearchCache } from './rag/cache.js'
 
 export { ConversationManager, type Conversation, type Message } from './conversation/manager.js'
@@ -59,9 +60,11 @@ export { CollectionManager, type Collection } from './document/collection-manage
 export { ChunkRelationManager, type ChunkRelation, type RelationType } from './document/chunk-relations.js'
 
 export { APIKeyManager, generateAPIKey, type APIKeyRecord, type APIKeyScope, type UserRole, type CreateKeyInput, type ValidatedKey } from './auth/api-key.js'
+export { OAuthProvider, type OAuthConfig, type OAuthUser } from './auth/oauth.js'
 
 export { PIIRedactor, type RedactorConfig } from './security/redactor.js'
 export { AuditLogger, type AuditEventType, type AuditEntry } from './security/audit.js'
+export { SecurityAlertManager, type AlertRule, type Alert } from './security/alerts.js'
 
 export type {
   PluginType,
