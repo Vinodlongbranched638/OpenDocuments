@@ -4,8 +4,8 @@ import type {
   HealthStatus,
   GenerateOpts,
   EmbeddingResult,
-} from '@opendocuments/core'
-import { fetchWithTimeout } from '@opendocuments/core'
+} from 'opendocuments-core'
+import { fetchWithTimeout } from 'opendocuments-core'
 
 export interface OpenAIConfig {
   apiKey?: string

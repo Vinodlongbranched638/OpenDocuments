@@ -32,7 +32,7 @@ import {
   type RerankResult,
   type GenerateOpts,
   type HealthStatus,
-} from '@opendocuments/core'
+} from 'opendocuments-core'
 
 /* ------------------------------------------------------------------ */
 /*  Provider -> package mapping                                       */

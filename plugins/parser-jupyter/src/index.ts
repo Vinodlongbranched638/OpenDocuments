@@ -1,4 +1,4 @@
-import type { ParserPlugin, RawDocument, ParsedChunk, PluginContext, HealthStatus } from '@opendocuments/core'
+import type { ParserPlugin, RawDocument, ParsedChunk, PluginContext, HealthStatus } from 'opendocuments-core'
 
 interface NotebookCell {
   cell_type: 'code' | 'markdown' | 'raw'

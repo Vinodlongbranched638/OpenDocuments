@@ -1,4 +1,4 @@
-import { bootstrap, type AppContext } from '@opendocuments/server'
+import { bootstrap, type AppContext } from 'opendocuments-server'
 
 // Module-level cache: single CLI invocation shares one context.
 // This is intentional for CLI use. Tests should import from @opendocuments/server directly.

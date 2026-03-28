@@ -3,8 +3,8 @@
  * Used by the RAG engine for real-time web search results.
  * Does not implement discover/fetch since web search is query-time, not index-time.
  */
-import type { PluginContext, HealthStatus } from '@opendocuments/core'
-import { fetchWithTimeout } from '@opendocuments/core'
+import type { PluginContext, HealthStatus } from 'opendocuments-core'
+import { fetchWithTimeout } from 'opendocuments-core'
 
 export interface WebSearchConfig {
   provider?: 'tavily' | 'searxng'

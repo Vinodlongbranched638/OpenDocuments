@@ -1,5 +1,5 @@
 import { Command } from 'commander'
-import { log } from '@opendocuments/core'
+import { log } from 'opendocuments-core'
 
 export function upgradeCommand() {
   return new Command('upgrade').description('Upgrade OpenDocuments to latest version').action(async () => {

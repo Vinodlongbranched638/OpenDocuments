@@ -1,5 +1,5 @@
 import { Command } from 'commander'
-import { log } from '@opendocuments/core'
+import { log } from 'opendocuments-core'
 import chalk from 'chalk'
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
@@ -66,9 +66,9 @@ export function pluginCommand() {
           test: 'vitest run',
           typecheck: 'tsc --noEmit',
         },
-        dependencies: { '@opendocuments/core': '^0.1.0' },
+        dependencies: { 'opendocuments-core': '^0.1.0' },
         devDependencies: { typescript: '^5.5.0', vitest: '^2.1.0' },
-        peerDependencies: { '@opendocuments/core': '^0.1.0' },
+        peerDependencies: { 'opendocuments-core': '^0.1.0' },
       }, null, 2) + '\n')
 
       // tsconfig.json
@@ -88,7 +88,7 @@ export function pluginCommand() {
 
       // Generate src/index.ts based on type
       const templates: Record<string, string> = {
-        parser: `import type { ParserPlugin, RawDocument, ParsedChunk, PluginContext, HealthStatus } from '@opendocuments/core'
+        parser: `import type { ParserPlugin, RawDocument, ParsedChunk, PluginContext, HealthStatus } from 'opendocuments-core'
 
 export class MyParser implements ParserPlugin {
   name = '${name}'
@@ -109,7 +109,7 @@ export class MyParser implements ParserPlugin {
 
 export default MyParser
 `,
-        connector: `import type { ConnectorPlugin, DiscoveredDocument, DocumentRef, RawDocument, PluginContext, HealthStatus } from '@opendocuments/core'
+        connector: `import type { ConnectorPlugin, DiscoveredDocument, DocumentRef, RawDocument, PluginContext, HealthStatus } from 'opendocuments-core'
 
 export class MyConnector implements ConnectorPlugin {
   name = '${name}'
@@ -132,7 +132,7 @@ export class MyConnector implements ConnectorPlugin {
 
 export default MyConnector
 `,
-        model: `import type { ModelPlugin, PluginContext, HealthStatus, GenerateOpts, EmbeddingResult } from '@opendocuments/core'
+        model: `import type { ModelPlugin, PluginContext, HealthStatus, GenerateOpts, EmbeddingResult } from 'opendocuments-core'
 
 export class MyModel implements ModelPlugin {
   name = '${name}'
@@ -147,7 +147,7 @@ export class MyModel implements ModelPlugin {
 
 export default MyModel
 `,
-        middleware: `import type { MiddlewarePlugin, PluginContext, HealthStatus, PipelineStage } from '@opendocuments/core'
+        middleware: `import type { MiddlewarePlugin, PluginContext, HealthStatus, PipelineStage } from 'opendocuments-core'
 
 export class MyMiddleware implements MiddlewarePlugin {
   name = '${name}'

@@ -1,5 +1,5 @@
 import { Command } from 'commander'
-import { log } from '@opendocuments/core'
+import { log } from 'opendocuments-core'
 import { getContext, shutdownContext } from '../utils/bootstrap.js'
 
 export function doctorCommand() {

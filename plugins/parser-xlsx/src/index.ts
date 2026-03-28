@@ -1,4 +1,4 @@
-import type { ParserPlugin, RawDocument, ParsedChunk, PluginContext, HealthStatus } from '@opendocuments/core'
+import type { ParserPlugin, RawDocument, ParsedChunk, PluginContext, HealthStatus } from 'opendocuments-core'
 
 export class XLSXParser implements ParserPlugin {
   name = '@opendocuments/parser-xlsx'

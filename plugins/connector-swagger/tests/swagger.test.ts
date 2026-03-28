@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { SwaggerConnector } from '../src/index.js'
 
-vi.mock('@opendocuments/core', async () => {
-  const actual = await vi.importActual('@opendocuments/core')
+vi.mock('opendocuments-core', async () => {
+  const actual = await vi.importActual('opendocuments-core')
   return { ...actual, fetchWithTimeout: vi.fn() }
 })
-import { fetchWithTimeout } from '@opendocuments/core'
+import { fetchWithTimeout } from 'opendocuments-core'
 
 const SAMPLE_SPEC = {
   openapi: '3.0.0',

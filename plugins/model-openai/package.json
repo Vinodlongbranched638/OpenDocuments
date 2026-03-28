@@ -17,13 +17,13 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@opendocuments/core": "*"
+    "opendocuments-core": "0.1.0"
   },
   "devDependencies": {
     "typescript": "^5.5.0",
     "vitest": "^2.1.0"
   },
   "peerDependencies": {
-    "@opendocuments/core": "^0.1.0"
+    "opendocuments-core": "^0.1.0"
   }
 }

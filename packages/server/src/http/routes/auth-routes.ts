@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import type { AppContext } from '../../bootstrap.js'
-import { OAuthProvider } from '@opendocuments/core'
+import { OAuthProvider } from 'opendocuments-core'
 import { randomBytes } from 'node:crypto'
 
 // In-memory store for pending OAuth states (state -> timestamp)

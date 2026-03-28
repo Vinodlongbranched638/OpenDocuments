@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ConfluenceConnector } from '../src/index.js'
 
-vi.mock('@opendocuments/core', async () => {
-  const actual = await vi.importActual('@opendocuments/core')
+vi.mock('opendocuments-core', async () => {
+  const actual = await vi.importActual('opendocuments-core')
   return { ...actual, fetchWithTimeout: vi.fn() }
 })
 
-import { fetchWithTimeout } from '@opendocuments/core'
+import { fetchWithTimeout } from 'opendocuments-core'
 
 describe('ConfluenceConnector', () => {
   let connector: ConfluenceConnector

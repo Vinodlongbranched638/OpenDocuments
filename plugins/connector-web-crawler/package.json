@@ -6,6 +6,6 @@
   "types": "./dist/index.d.ts",
   "exports": { ".": { "import": "./dist/index.js", "types": "./dist/index.d.ts" } },
   "scripts": { "build": "tsc", "test": "vitest run", "typecheck": "tsc --noEmit", "clean": "rm -rf dist" },
-  "dependencies": { "@opendocuments/core": "*", "cheerio": "^1.0.0" },
+  "dependencies": { "opendocuments-core": "0.1.0", "cheerio": "^1.0.0" },
   "devDependencies": { "typescript": "^5.5.0", "vitest": "^2.1.0" }
 }

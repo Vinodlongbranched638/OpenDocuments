@@ -1,5 +1,5 @@
 import { Command } from 'commander'
-import { log, loadConfig } from '@opendocuments/core'
+import { log, loadConfig } from 'opendocuments-core'
 import { existsSync, unlinkSync } from 'node:fs'
 import { join } from 'node:path'
 

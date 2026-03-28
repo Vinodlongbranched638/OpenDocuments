@@ -1,5 +1,5 @@
 import { Command } from 'commander'
-import { log } from '@opendocuments/core'
+import { log } from 'opendocuments-core'
 import chalk from 'chalk'
 import { writeFileSync, existsSync, mkdirSync } from 'node:fs'
 import { join, resolve } from 'node:path'
@@ -275,7 +275,7 @@ interface ConfigOptions {
 
 function generateConfigFile(opts: ConfigOptions): string {
   const lines = [
-    `import { defineConfig } from '@opendocuments/core'`,
+    `import { defineConfig } from 'opendocuments-core'`,
     ``,
     `export default defineConfig({`,
     `  workspace: '${opts.projectName}',`,

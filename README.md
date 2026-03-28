@@ -34,7 +34,7 @@ When someone asks _"How does our auth system work?"_ or _"What was the Q3 budget
 OpenDocuments **connects to all your document sources**, **indexes everything into a unified search engine**, and **answers questions in natural language** -- with source citations so you know exactly where the answer came from.
 
 ```bash
-npm install -g @opendocuments/cli
+npm install -g opendocuments
 opendocuments init
 opendocuments start
 ```
@@ -108,7 +108,7 @@ docker compose --profile with-ollama up -d
 ### 1. Install
 
 ```bash
-npm install -g @opendocuments/cli
+npm install -g opendocuments
 ```
 
 ### 2. Initialize

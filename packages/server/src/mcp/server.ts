@@ -6,7 +6,7 @@ import {
   ListResourcesRequestSchema,
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js'
-import { discoverFiles } from '@opendocuments/core'
+import { discoverFiles } from 'opendocuments-core'
 import type { AppContext } from '../bootstrap.js'
 
 const TOOLS = [

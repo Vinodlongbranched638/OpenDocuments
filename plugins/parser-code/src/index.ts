@@ -1,4 +1,4 @@
-import type { ParserPlugin, RawDocument, ParsedChunk, PluginContext, HealthStatus } from '@opendocuments/core'
+import type { ParserPlugin, RawDocument, ParsedChunk, PluginContext, HealthStatus } from 'opendocuments-core'
 
 const LANGUAGE_MAP: Record<string, string> = {
   '.js': 'javascript', '.jsx': 'javascript', '.mjs': 'javascript',

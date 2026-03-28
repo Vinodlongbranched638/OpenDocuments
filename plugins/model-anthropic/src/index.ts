@@ -1,5 +1,5 @@
-import type { ModelPlugin, PluginContext, HealthStatus, GenerateOpts } from '@opendocuments/core'
-import { fetchWithTimeout } from '@opendocuments/core'
+import type { ModelPlugin, PluginContext, HealthStatus, GenerateOpts } from 'opendocuments-core'
+import { fetchWithTimeout } from 'opendocuments-core'
 
 export interface AnthropicConfig {
   apiKey?: string

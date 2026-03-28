@@ -1,5 +1,5 @@
-import type { ConnectorPlugin, DiscoveredDocument, DocumentRef, RawDocument, PluginContext, HealthStatus, ChangeEvent, Disposable } from '@opendocuments/core'
-import { fetchWithTimeout } from '@opendocuments/core'
+import type { ConnectorPlugin, DiscoveredDocument, DocumentRef, RawDocument, PluginContext, HealthStatus, ChangeEvent, Disposable } from 'opendocuments-core'
+import { fetchWithTimeout } from 'opendocuments-core'
 
 export interface GitHubConfig {
   repo: string         // owner/repo

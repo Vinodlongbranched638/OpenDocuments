@@ -1,6 +1,6 @@
 import { Command } from 'commander'
-import { log } from '@opendocuments/core'
-import { bootstrap, createApp, startMCPServer } from '@opendocuments/server'
+import { log } from 'opendocuments-core'
+import { bootstrap, createApp, startMCPServer } from 'opendocuments-server'
 import { serve } from '@hono/node-server'
 import { resolve, dirname, join } from 'node:path'
 import { existsSync, writeFileSync, mkdirSync, unlinkSync } from 'node:fs'

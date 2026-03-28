@@ -1,5 +1,5 @@
 import { Command } from 'commander'
-import { log } from '@opendocuments/core'
+import { log } from 'opendocuments-core'
 import chalk from 'chalk'
 import { getContext, shutdownContext } from '../utils/bootstrap.js'
 import { writeFileSync, readFileSync, existsSync } from 'node:fs'

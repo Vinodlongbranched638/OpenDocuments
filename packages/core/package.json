@@ -1,5 +1,5 @@
 {
-  "name": "@opendocuments/core",
+  "name": "opendocuments-core",
   "version": "0.1.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -33,5 +33,22 @@
     "@types/semver": "^7.7.1",
     "typescript": "^5.5.0",
     "vitest": "^2.1.0"
-  }
+  },
+  "description": "Core engine for OpenDocuments - self-hosted RAG platform",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/joungminsung/OpenDocuments.git",
+    "directory": "packages/core"
+  },
+  "keywords": [
+    "rag",
+    "llm",
+    "document-search",
+    "vector-search",
+    "ai"
+  ],
+  "files": [
+    "dist/**/*"
+  ]
 }

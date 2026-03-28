@@ -5,8 +5,8 @@ import type {
   RawDocument,
   PluginContext,
   HealthStatus,
-} from '@opendocuments/core'
-import { fetchWithTimeout } from '@opendocuments/core'
+} from 'opendocuments-core'
+import { fetchWithTimeout } from 'opendocuments-core'
 
 export interface GDriveConfig {
   accessToken?: string        // OAuth2 access token
