@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { createJiti } from 'jiti'
 import { configSchema, type OpenDocumentsConfig } from './schema.js'
@@ -9,6 +9,27 @@ export function validateConfig(raw: unknown): OpenDocumentsConfig {
 }
 
 export function loadConfig(projectDir: string): OpenDocumentsConfig {
+  // Load .env file if present (before config resolution so process.env refs work)
+  const envPath = resolve(projectDir, '.env')
+  if (existsSync(envPath)) {
+    try {
+      const envContent = readFileSync(envPath, 'utf-8')
+      for (const line of envContent.split('\n')) {
+        const trimmed = line.trim()
+        if (!trimmed || trimmed.startsWith('#')) continue
+        const eqIndex = trimmed.indexOf('=')
+        if (eqIndex === -1) continue
+        const key = trimmed.slice(0, eqIndex).trim()
+        const value = trimmed.slice(eqIndex + 1).trim().replace(/^["']|["']$/g, '')
+        if (key && !process.env[key]) {
+          process.env[key] = value
+        }
+      }
+    } catch {
+      // .env read failed — continue without it
+    }
+  }
+
   const tsPath = resolve(projectDir, 'opendocuments.config.ts')
   const jsPath = resolve(projectDir, 'opendocuments.config.js')
 
