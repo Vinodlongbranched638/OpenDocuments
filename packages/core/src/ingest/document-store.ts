@@ -116,13 +116,19 @@ export class DocumentStore {
     // Step 1: Upsert vectors
     await this.vectorDb.upsert(COLLECTION, vectorDocs)
 
-    // Step 2: Insert into FTS5 index
-    for (const chunk of chunks) {
-      const chunkId = `${documentId}_chunk_${chunk.position}`
-      this.db.run('INSERT OR REPLACE INTO chunks_fts (chunk_id, content) VALUES (?, ?)', [chunkId, chunk.content])
+    // Step 2: Insert into FTS5 index -- if this fails, clean up vectors
+    try {
+      for (const chunk of chunks) {
+        const chunkId = `${documentId}_chunk_${chunk.position}`
+        this.db.run('INSERT OR REPLACE INTO chunks_fts (chunk_id, content) VALUES (?, ?)', [chunkId, chunk.content])
+      }
+    } catch (err) {
+      const chunkIds = chunks.map((_, i) => `${documentId}_chunk_${i}`)
+      await this.vectorDb.delete(COLLECTION, chunkIds).catch(() => {})
+      throw err
     }
 
-    // Step 3: Update SQLite -- if this fails, compensate by deleting the vectors we just inserted
+    // Step 3: Update SQLite -- if this fails, compensate by deleting both vectors and FTS entries
     try {
       const now = new Date().toISOString()
       this.db.run(
@@ -130,9 +136,12 @@ export class DocumentStore {
         [chunks.length, now, now, documentId]
       )
     } catch (err) {
-      // Compensating action: remove vectors we just inserted to avoid orphaned vectors
       const chunkIds = chunks.map((_, i) => `${documentId}_chunk_${i}`)
       await this.vectorDb.delete(COLLECTION, chunkIds).catch(() => {})
+      for (const chunk of chunks) {
+        const chunkId = `${documentId}_chunk_${chunk.position}`
+        try { this.db.run('DELETE FROM chunks_fts WHERE chunk_id = ?', [chunkId]) } catch {}
+      }
       throw err
     }
   }
@@ -147,6 +156,9 @@ export class DocumentStore {
     return results.map(r => {
       const docId = r.metadata.document_id as string
       const doc = this.getDocument(docId)
+      if (!doc) {
+        console.warn(`[searchChunks] Orphaned chunk: ${r.id}, document ${docId} not found`)
+      }
       return {
         chunkId: r.id,
         content: r.content,
@@ -215,11 +227,6 @@ export class DocumentStore {
 
     // Step 2: Delete SQLite row permanently.
     this.db.run('DELETE FROM documents WHERE id = ?', [documentId])
-  }
-
-  /** @deprecated Use softDeleteDocument instead */
-  async deleteDocument(documentId: string): Promise<void> {
-    return this.hardDeleteDocument(documentId)
   }
 
   /**
