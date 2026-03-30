@@ -39,8 +39,8 @@ export class Retriever {
     let sparseResults: SearchResult[] = []
     try {
       sparseResults = this.store.searchFTS(query, opts.k)
-    } catch {
-      // FTS5 table may not exist yet (pre-migration) -- fall back to dense only
+    } catch (err) {
+      console.warn('[retriever] FTS5 search failed, using dense-only:', err instanceof Error ? err.message : String(err))
     }
 
     // RRF merge if we have sparse results
