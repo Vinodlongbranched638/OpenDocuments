@@ -7,29 +7,32 @@ export function chatRoutes(ctx: AppContext) {
   const app = new Hono()
 
   app.post('/api/v1/chat', async (c) => {
-    let body: { query: string; profile?: string; conversationId?: string }
+    let body: { query: string; profile?: string; conversationId?: string; workspaceId?: string }
     try {
       body = await c.req.json()
     } catch {
       return c.json({ error: 'Invalid JSON body' }, 400)
     }
-    if (!body.query) return c.json({ error: 'query is required' }, 400)
+    if (!body.query || !body.query.trim()) return c.json({ error: 'query is required and must not be empty' }, 400)
 
+    const workspaceId = body.workspaceId || ctx.config.workspace || 'default'
     const startTime = Date.now()
-    const result = await ctx.ragEngine.query({ query: body.query, profile: body.profile })
+    const result = await ctx.ragEngine.query({ query: body.query.trim(), profile: body.profile })
     const responseTimeMs = Date.now() - startTime
 
-    // Query logging (Fix 8) -- write to query_logs table
+    // Query logging
     try {
       ctx.db.run(
         `INSERT INTO query_logs (id, workspace_id, query, intent, profile, confidence_score, response_time_ms, route, feedback, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [result.queryId, 'default', body.query, 'general', body.profile || 'balanced',
+        [result.queryId, workspaceId, body.query, 'general', body.profile || 'balanced',
          result.confidence.score, responseTimeMs, result.route, null, new Date().toISOString()]
       )
-    } catch {} // Don't fail the response if logging fails
+    } catch (err) {
+      console.error('[query_logs] Failed to persist:', err instanceof Error ? err.message : String(err))
+    }
 
-    // Conversation persistence -- optionally save messages
+    // Conversation persistence
     if (body.conversationId) {
       try {
         ctx.conversationManager.addMessage(body.conversationId, 'user', body.query)
@@ -39,32 +42,40 @@ export function chatRoutes(ctx: AppContext) {
           confidenceScore: result.confidence.score,
           responseTimeMs,
         })
-      } catch {} // Don't fail the response if saving fails
+      } catch (err) {
+        console.error('[conversation] Failed to persist:', err instanceof Error ? err.message : String(err))
+      }
     }
 
     return c.json(result)
   })
 
   app.post('/api/v1/chat/stream', async (c) => {
-    let body: { query: string; profile?: string; conversationId?: string }
+    let body: { query: string; profile?: string; conversationId?: string; workspaceId?: string }
     try {
       body = await c.req.json()
     } catch {
       return c.json({ error: 'Invalid JSON body' }, 400)
     }
-    if (!body.query) return c.json({ error: 'query is required' }, 400)
+    if (!body.query || !body.query.trim()) return c.json({ error: 'query is required and must not be empty' }, 400)
 
     return streamSSE(c, async (stream) => {
       let fullAnswer = ''
       let sources: any[] = []
       let confidence: any = null
 
-      for await (const event of ctx.ragEngine.queryStream({ query: body.query, profile: body.profile })) {
-        await stream.writeSSE({ event: event.type, data: JSON.stringify(event.data) })
+      try {
+        for await (const event of ctx.ragEngine.queryStream({ query: body.query.trim(), profile: body.profile })) {
+          await stream.writeSSE({ event: event.type, data: JSON.stringify(event.data) })
 
-        if (event.type === 'chunk') fullAnswer += event.data
-        if (event.type === 'sources') sources = event.data as any[]
-        if (event.type === 'confidence') confidence = event.data
+          if (event.type === 'chunk') fullAnswer += event.data
+          if (event.type === 'sources') sources = event.data as any[]
+          if (event.type === 'confidence') confidence = event.data
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error'
+        console.error('[chat/stream] Error during streaming:', message)
+        await stream.writeSSE({ event: 'error', data: JSON.stringify({ error: message }) })
       }
 
       // Persist conversation after streaming completes
@@ -76,7 +87,9 @@ export function chatRoutes(ctx: AppContext) {
           profileUsed: body.profile || 'balanced',
           confidenceScore: confidence?.score,
         })
-      } catch {} // Don't fail the response if persistence fails
+      } catch (err) {
+        console.error('[conversation] Failed to persist:', err instanceof Error ? err.message : String(err))
+      }
     })
   })
 
