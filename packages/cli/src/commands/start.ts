@@ -29,6 +29,23 @@ function findWebDistDir(): string | null {
   return null
 }
 
+function printBootstrapHelp(errorMessage: string): void {
+  const msg = errorMessage.toLowerCase()
+  log.blank()
+  log.info('Troubleshooting suggestions:')
+  if (msg.includes('econnrefused') || msg.includes('connect') || msg.includes('ollama')) {
+    log.arrow('Ollama may not be running. Start it with:  ollama serve')
+    log.arrow('Install Ollama from: https://ollama.com/download')
+  }
+  if (msg.includes('model') || msg.includes('not found')) {
+    log.arrow('The requested model may not be installed. Pull it with:  ollama pull <model-name>')
+  }
+  if (msg.includes('config') || msg.includes('validation') || msg.includes('parse')) {
+    log.arrow('Check your configuration file for syntax errors or invalid values.')
+  }
+  log.arrow('Run diagnostics with:  opendocuments doctor')
+}
+
 export function startCommand() {
   return new Command('start')
     .description('Start OpenDocuments server')
@@ -39,12 +56,28 @@ export function startCommand() {
       log.heading('OpenDocuments Server')
       if (opts.mcpOnly) {
         log.wait('Starting MCP server (stdio mode)...')
-        const ctx = await bootstrap()
+        let ctx: Awaited<ReturnType<typeof bootstrap>>
+        try {
+          ctx = await bootstrap()
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err)
+          log.fail(`Failed to bootstrap: ${message}`)
+          printBootstrapHelp(message)
+          process.exit(1)
+        }
         await startMCPServer(ctx)
         return
       }
       log.wait('Bootstrapping...')
-      const ctx = await bootstrap()
+      let ctx: Awaited<ReturnType<typeof bootstrap>>
+      try {
+        ctx = await bootstrap()
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        log.fail(`Failed to bootstrap: ${message}`)
+        printBootstrapHelp(message)
+        process.exit(1)
+      }
 
       // Find web UI dist directory (unless disabled)
       let webDir: string | undefined
