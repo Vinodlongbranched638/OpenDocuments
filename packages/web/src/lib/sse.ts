@@ -65,8 +65,13 @@ export async function streamChat(
               case 'done':
                 callbacks.onDone(parsed)
                 break
+              case 'error':
+                callbacks.onError(typeof parsed === 'object' && parsed.error ? parsed.error : 'Unknown streaming error')
+                break
             }
-          } catch {}
+          } catch (e) {
+            console.warn('[SSE] Failed to parse data:', data?.substring(0, 100))
+          }
           eventType = ''
         }
       }

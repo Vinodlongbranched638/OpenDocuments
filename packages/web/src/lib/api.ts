@@ -35,14 +35,17 @@ export async function deleteDocument(id: string): Promise<void> {
   await request(`/documents/${id}`, { method: 'DELETE' })
 }
 
-export async function uploadDocument(file: File): Promise<any> {
+export async function uploadDocument(file: File): Promise<{ documentId: string; chunks: number; status: string }> {
   const formData = new FormData()
   formData.append('file', file)
   const res = await fetch(`${BASE}/documents/upload`, {
     method: 'POST',
     body: formData,
   })
-  if (!res.ok) throw new Error('Upload failed')
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: 'Upload failed' }))
+    throw new Error(body.error || `Upload failed with HTTP ${res.status}`)
+  }
   return res.json()
 }
 
