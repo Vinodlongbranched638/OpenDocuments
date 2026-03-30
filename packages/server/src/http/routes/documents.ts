@@ -38,18 +38,34 @@ export function documentRoutes(ctx: AppContext) {
     if (!file || !(file instanceof File)) {
       return c.json({ error: 'No file provided' }, 400)
     }
+
+    // File size validation (50MB max)
+    const MAX_FILE_SIZE = 50 * 1024 * 1024
+    if (file.size > MAX_FILE_SIZE) {
+      return c.json({ error: `File too large: ${(file.size / 1024 / 1024).toFixed(1)}MB (max 50MB)` }, 413)
+    }
+
+    // Filename sanitization
+    const sanitizedName = file.name
+      .replace(/\.\./g, '_')
+      .replace(/[<>:"|?*]/g, '_')
+      .trim()
+    if (!sanitizedName || sanitizedName.length === 0) {
+      return c.json({ error: 'Invalid filename' }, 400)
+    }
+
     // Read as buffer for binary files, text for known text formats
     const textExtensions = ['.md', '.mdx', '.txt', '.json', '.yaml', '.yml', '.toml', '.csv', '.html', '.htm']
-    const ext = '.' + (file.name.split('.').pop() || '')
+    const ext = '.' + (sanitizedName.split('.').pop() || '')
     const content = textExtensions.includes(ext)
       ? await file.text()
       : Buffer.from(await file.arrayBuffer())
     const result = await ctx.pipeline.ingest({
-      title: file.name,
+      title: sanitizedName,
       content,
       sourceType: 'upload',
-      sourcePath: file.name,
-      fileType: file.name.includes('.') ? '.' + file.name.split('.').pop() : undefined,
+      sourcePath: sanitizedName,
+      fileType: sanitizedName.includes('.') ? '.' + sanitizedName.split('.').pop() : undefined,
     })
     return c.json(result, 201)
   })
