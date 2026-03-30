@@ -173,9 +173,12 @@ export class DocumentStore {
   }
 
   searchFTS(query: string, topK: number): SearchResult[] {
-    // Escape FTS5 special characters by wrapping each word in double quotes
+    // Sanitize for FTS5: strip operators, wrap each token in double quotes
     const safeQuery = query
       .split(/\s+/)
+      .filter(w => w.length > 0)
+      .filter(w => !/^(AND|OR|NOT|NEAR)$/i.test(w))  // Strip FTS5 operators
+      .map(w => w.replace(/[(){}[\]^*:]/g, ''))        // Strip FTS5 special chars
       .filter(w => w.length > 0)
       .map(w => `"${w.replace(/"/g, '""')}"`)
       .join(' ')

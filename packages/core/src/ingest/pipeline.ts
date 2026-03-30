@@ -62,8 +62,8 @@ export class IngestPipeline {
           chunks.push(chunk)
         }
         if (chunks.length > 0) return chunks
-      } catch {
-        // Primary parser failed, try fallbacks
+      } catch (err) {
+        console.warn(`[parse] Primary parser failed for ${fileExt}: ${err instanceof Error ? err.message : String(err)}`)
       }
     }
 
@@ -78,7 +78,8 @@ export class IngestPipeline {
           chunks.push(chunk)
         }
         if (chunks.length > 0) return chunks
-      } catch {
+      } catch (err) {
+        console.warn(`[parse] Fallback parser '${fallbackName}' failed for ${fileExt}: ${err instanceof Error ? err.message : String(err)}`)
         continue
       }
     }
@@ -192,6 +193,11 @@ export class IngestPipeline {
       for (let i = 0; i < texts.length; i += BATCH_SIZE) {
         const batch = texts.slice(i, i + BATCH_SIZE)
         const result = await embeddingModel.embed(batch)
+        if (result.dense.length !== batch.length) {
+          throw new Error(
+            `Embedding dimension mismatch: sent ${batch.length} texts, got ${result.dense.length} embeddings`
+          )
+        }
         allEmbeddings.push(...result.dense)
       }
 
