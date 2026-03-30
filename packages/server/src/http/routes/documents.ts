@@ -45,8 +45,9 @@ export function documentRoutes(ctx: AppContext) {
       return c.json({ error: `File too large: ${(file.size / 1024 / 1024).toFixed(1)}MB (max 50MB)` }, 413)
     }
 
-    // Filename sanitization
-    const sanitizedName = file.name
+    // Filename sanitization: strip paths and dangerous characters
+    const basename = file.name.split(/[/\\]/).pop() || ''
+    const sanitizedName = basename
       .replace(/\.\./g, '_')
       .replace(/[<>:"|?*]/g, '_')
       .trim()

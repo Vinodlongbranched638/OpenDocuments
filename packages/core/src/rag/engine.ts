@@ -211,8 +211,13 @@ export class RAGEngine {
     }
 
     let answer = ''
-    for await (const chunk of generateAnswer(this.llm, genInput)) {
-      answer += chunk
+    try {
+      for await (const chunk of generateAnswer(this.llm, genInput)) {
+        answer += chunk
+      }
+    } catch (err) {
+      console.error('[rag] Generation failed:', err instanceof Error ? err.message : String(err))
+      answer = 'An error occurred while generating the answer. Please try again.'
     }
 
     this.eventBus.emit('query:generated', { queryId })

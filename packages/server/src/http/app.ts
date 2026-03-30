@@ -66,7 +66,7 @@ export function createApp(ctx: AppContext, opts?: AppOptions) {
     if (allowedDomains && allowedDomains.length > 0 && referer) {
       try {
         const refOrigin = new URL(referer).origin
-        if (!allowedDomains.some(d => refOrigin.includes(d))) {
+        if (!allowedDomains.some(d => refOrigin === d || refOrigin === `https://${d}` || refOrigin === `http://${d}`)) {
           return c.text('Forbidden', 403)
         }
       } catch {}

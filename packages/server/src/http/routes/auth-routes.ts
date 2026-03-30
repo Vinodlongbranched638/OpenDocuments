@@ -24,10 +24,14 @@ export function authRoutes(ctx: AppContext) {
       redirectUri: `${c.req.url.split('/auth')[0]}/auth/callback/${provider}`,
     })
 
+    // Clean old states (>10min) and enforce max size to prevent memory exhaustion
+    const now = Date.now()
+    for (const [s, t] of pendingStates) { if (now - t > 600000) pendingStates.delete(s) }
+    if (pendingStates.size >= 1000) {
+      return c.json({ error: 'Too many pending login attempts. Try again later.' }, 429)
+    }
     const state = randomBytes(16).toString('hex')
-    pendingStates.set(state, Date.now())
-    // Clean old states (>10min)
-    for (const [s, t] of pendingStates) { if (Date.now() - t > 600000) pendingStates.delete(s) }
+    pendingStates.set(state, now)
 
     return c.redirect(oauth.getAuthorizationUrl(state))
   })
