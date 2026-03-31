@@ -26,6 +26,11 @@
     "vitest": "^2.1.0"
   },
   "description": "Self-hosted RAG platform for organizational documents - CLI and server",
+  "homepage": "https://github.com/joungminsung/OpenDocuments",
+  "bugs": {
+    "url": "https://github.com/joungminsung/OpenDocuments/issues"
+  },
+  "author": "OpenDocuments Contributors",
   "license": "MIT",
   "repository": {
     "type": "git",

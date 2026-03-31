@@ -8,6 +8,9 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License"></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node.js-20%2B-green.svg" alt="Node.js"></a>
   <a href="https://www.typescriptlang.org"><img src="https://img.shields.io/badge/TypeScript-5.5%2B-blue.svg" alt="TypeScript"></a>
+  <a href="https://www.npmjs.com/package/opendocuments"><img src="https://img.shields.io/npm/v/opendocuments.svg" alt="npm"></a>
+  <a href="https://www.npmjs.com/package/opendocuments"><img src="https://img.shields.io/npm/dm/opendocuments.svg" alt="npm downloads"></a>
+  <a href="https://github.com/joungminsung/OpenDocuments/stargazers"><img src="https://img.shields.io/github/stars/joungminsung/OpenDocuments.svg?style=social" alt="GitHub stars"></a>
 </p>
 
 <p align="center">
@@ -40,6 +43,14 @@ opendocuments start
 ```
 
 Open `http://localhost:3000`, and ask away.
+
+### Recent Improvements
+- **One-touch Ollama setup**: `init` auto-detects Ollama, offers to pull missing models
+- **`.env` auto-loading**: API keys in `.env` are loaded automatically (no manual export needed)
+- **Multi-turn conversations**: Chat remembers previous context for follow-up questions
+- **Degraded mode warnings**: Clear banners when models aren't configured, with fix instructions
+- **Enhanced diagnostics**: `opendocuments doctor` checks Ollama connectivity, model availability, and config validity
+- **Security hardening**: FTS5 injection prevention, file upload sanitization, OAuth state limits, workspace isolation
 
 ---
 
@@ -120,8 +131,10 @@ opendocuments init
 The interactive wizard will:
 - Detect your hardware (CPU, RAM) and recommend the optimal LLM
 - Let you choose between **local** (Ollama) or **cloud** (OpenAI, Claude, Gemini, Grok) models
+- **Auto-detect Ollama** and offer to pull missing models automatically
+- **Validate cloud API keys** before saving
 - Select a plugin preset: `Developer`, `Enterprise`, `All`, or `Custom`
-- Generate `opendocuments.config.ts`
+- Generate `opendocuments.config.ts` and `.env` (API keys loaded automatically)
 
 ### 3. Start
 
@@ -130,6 +143,8 @@ opendocuments start
 ```
 
 Open **http://localhost:3000** -- you'll see a chat UI, document manager, and admin dashboard.
+
+> **First time?** If Ollama isn't running, you'll see a clear **DEGRADED MODE** banner with step-by-step fix instructions. Run `opendocuments doctor` for full diagnostics.
 
 ### 4. Index Your Documents
 
@@ -395,7 +410,7 @@ export default defineConfig({ mode: 'team' })
 
 ```typescript
 // opendocuments.config.ts
-import { defineConfig } from '@opendocuments/core'
+import { defineConfig } from 'opendocuments-core'
 
 export default defineConfig({
   workspace: 'my-team',
@@ -433,14 +448,22 @@ export default defineConfig({
 ## Docker Deployment
 
 ```bash
-# Basic
+# Basic (cloud LLM)
 docker compose up -d
 
 # With local LLM (Ollama)
 docker compose --profile with-ollama up -d
+
+# With .env file for API keys
+docker compose --env-file .env up -d
 ```
 
-The Docker image includes all packages and plugins. Data persists in a named volume.
+The Docker image includes all packages and plugins. Data persists in a named volume. Mount your config:
+
+```bash
+docker run -v ./opendocuments.config.ts:/app/opendocuments.config.ts \
+  -v opendocuments-data:/data -p 3000:3000 opendocuments
+```
 
 ---
 
@@ -524,6 +547,21 @@ npm run dev      # Watch mode
 | 8 connector plugins | GitHub, Notion, GDrive, S3, Confluence, Swagger, WebCrawler, WebSearch | 38 |
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for conventions, test patterns, and plugin development guide.
+
+---
+
+## Documentation
+
+| Guide | Description |
+|-------|-------------|
+| [Quick Start](#quick-start) | Install and run in 5 minutes |
+| [Architecture](docs-site/guide/architecture.md) | Package structure, data flow, design decisions |
+| [Plugin API: Parsers](docs-site/plugins/parser-api.md) | Create custom document parsers |
+| [Plugin API: Connectors](docs-site/plugins/connector-api.md) | Connect external data sources |
+| [Plugin API: Models](docs-site/plugins/model-api.md) | Add custom AI providers |
+| [TypeScript SDK](docs-site/sdk/guide.md) | Programmatic API client |
+| [Security Policy](SECURITY.md) | Vulnerability reporting |
+| [Contributing](CONTRIBUTING.md) | Development setup, conventions, plugin guide |
 
 ---
 
