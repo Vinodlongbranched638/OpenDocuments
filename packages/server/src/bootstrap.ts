@@ -190,24 +190,28 @@ async function loadModelPlugin(
       return createStubModels(embeddingDimensions)
     }
 
+    // Probe retry configuration (configurable for tests: OPENDOCUMENTS_PROBE_RETRIES=1)
+    const maxRetries = parseInt(process.env.OPENDOCUMENTS_PROBE_RETRIES || '3', 10)
+    const retryDelay = parseInt(process.env.OPENDOCUMENTS_PROBE_DELAY_MS || '3000', 10)
+
     // Probe the embedding capability with a test call to verify the plugin is
     // actually functional (e.g. the remote model server is running with the
     // required model installed). Fall back to stubs on any failure so that the
     // server can still start and serve requests in degraded mode.
     if (mainPlugin.capabilities.embedding && mainPlugin.embed) {
       let probeSuccess = false
-      for (let attempt = 1; attempt <= 3; attempt++) {
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
           await mainPlugin.embed(['probe'])
           probeSuccess = true
           break
         } catch (probeErr) {
           const msg = (probeErr as Error).message
-          if (attempt < 3) {
-            log.wait(`Model embed probe failed (attempt ${attempt}/3): ${msg}. Retrying in 3s...`)
-            await new Promise(r => setTimeout(r, 3000))
+          if (attempt < maxRetries) {
+            log.wait(`Model embed probe failed (attempt ${attempt}/${maxRetries}): ${msg}. Retrying in ${retryDelay / 1000}s...`)
+            await new Promise(r => setTimeout(r, retryDelay))
           } else {
-            log.fail(`Model plugin ${packageName} embed probe failed after 3 attempts: ${msg}. Using stub models.`)
+            log.fail(`Model plugin ${packageName} embed probe failed after ${maxRetries} attempts: ${msg}. Using stub models.`)
           }
         }
       }
@@ -232,18 +236,18 @@ async function loadModelPlugin(
 
       if (embeddingPlugin && embeddingPlugin.capabilities.embedding && embeddingPlugin.embed) {
         let secondaryProbeSuccess = false
-        for (let attempt = 1; attempt <= 3; attempt++) {
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
           try {
             await embeddingPlugin.embed(['probe'])
             secondaryProbeSuccess = true
             break
           } catch (probeErr) {
             const msg = (probeErr as Error).message
-            if (attempt < 3) {
-              log.wait(`Secondary embedding probe failed (attempt ${attempt}/3): ${msg}. Retrying in 3s...`)
-              await new Promise(r => setTimeout(r, 3000))
+            if (attempt < maxRetries) {
+              log.wait(`Secondary embedding probe failed (attempt ${attempt}/${maxRetries}): ${msg}. Retrying in ${retryDelay / 1000}s...`)
+              await new Promise(r => setTimeout(r, retryDelay))
             } else {
-              log.fail(`Secondary embedding provider '${embeddingProvider}' probe failed after 3 attempts: ${msg}. Falling back to stub embedder.`)
+              log.fail(`Secondary embedding provider '${embeddingProvider}' probe failed after ${maxRetries} attempts: ${msg}. Falling back to stub embedder.`)
             }
           }
         }
