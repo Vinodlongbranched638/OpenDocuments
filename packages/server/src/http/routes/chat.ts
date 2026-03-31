@@ -15,7 +15,8 @@ export function chatRoutes(ctx: AppContext) {
     }
     if (!body.query || !body.query.trim()) return c.json({ error: 'query is required and must not be empty' }, 400)
 
-    const workspaceId = body.workspaceId || ctx.config.workspace || 'default'
+    const auth = c.get('auth') as any
+    const workspaceId = auth?.record?.workspaceId || body.workspaceId || ctx.config.workspace || 'default'
 
     // Build conversation history if continuing a conversation
     let conversationHistory: string | undefined
@@ -92,6 +93,7 @@ export function chatRoutes(ctx: AppContext) {
       let fullAnswer = ''
       let sources: any[] = []
       let confidence: any = null
+      let streamError = false
 
       try {
         for await (const event of ctx.ragEngine.queryStream({ query: body.query.trim(), profile: body.profile, conversationHistory: streamConversationHistory })) {
@@ -102,22 +104,25 @@ export function chatRoutes(ctx: AppContext) {
           if (event.type === 'confidence') confidence = event.data
         }
       } catch (err) {
+        streamError = true
         const message = err instanceof Error ? err.message : 'Unknown error'
         console.error('[chat/stream] Error during streaming:', message)
         await stream.writeSSE({ event: 'error', data: JSON.stringify({ error: message }) })
       }
 
-      // Persist conversation after streaming completes
-      try {
-        const conversationId = body.conversationId || ctx.conversationManager.create().id
-        ctx.conversationManager.addMessage(conversationId, 'user', body.query)
-        ctx.conversationManager.addMessage(conversationId, 'assistant', fullAnswer, {
-          sources,
-          profileUsed: body.profile || 'balanced',
-          confidenceScore: confidence?.score,
-        })
-      } catch (err) {
-        console.error('[conversation] Failed to persist:', err instanceof Error ? err.message : String(err))
+      // Only persist if streaming completed successfully
+      if (!streamError && fullAnswer) {
+        try {
+          const conversationId = body.conversationId || ctx.conversationManager.create().id
+          ctx.conversationManager.addMessage(conversationId, 'user', body.query)
+          ctx.conversationManager.addMessage(conversationId, 'assistant', fullAnswer, {
+            sources,
+            profileUsed: body.profile || 'balanced',
+            confidenceScore: confidence?.score,
+          })
+        } catch (err) {
+          console.error('[conversation] Failed to persist:', err instanceof Error ? err.message : String(err))
+        }
       }
     })
   })
